@@ -264,24 +264,25 @@ const SAVE_TIP='After you add filters, bookmark the results page (Ctrl+D on Wind
 
 /* ---------- Built-in suggestion lists ---------- */
 const SUBS=[
- {k:['crm','saas','software','app','apps','tools'],s:['CRM','SaaS','smallbusiness','sales']},
- {k:['marketing','seo','ads','advertising','social media','email list'],s:['marketing','SEO','PPC','smallbusiness']},
- {k:['sales','prospect','lead'],s:['sales','smallbusiness']},
- {k:['business','startup','llc','entrepreneur','invoice','accounting'],s:['smallbusiness','Entrepreneur','startups']},
- {k:['computer','pc','laptop','desktop','gpu','graphics card','gaming pc','chromebook'],s:['buildapc','techsupport','SuggestALaptop','laptops']},
- {k:['iphone','ipad','mac','macbook','airpods'],s:['apple','gadgets','techsupport']},
- {k:['laptop','phone','computer','tv','headphones','camera','monitor','router','tech'],s:['gadgets','techsupport','BuyItForLife']},
- {k:['sourdough','bread','baking'],s:['Breadit','Baking','Cooking']},
- {k:['air fryer','kitchen','recipe','cooking','knife','pans','blender','meal'],s:['Cooking','BuyItForLife','Frugal','AskCulinary']},
- {k:['mattress','vacuum','furniture','home','house','roof','lawn','appliance'],s:['BuyItForLife','HomeImprovement','Frugal']},
- {k:['car','truck','suv','honda','toyota','ford','tesla','ev ','tire','cr-v'],s:['whatcarshouldIbuy','MechanicAdvice','cars']},
- {k:['budget','credit','invest','retire','mortgage','money','bank','loan','tax'],s:['personalfinance','Frugal','investing']},
- {k:['running','shoes','gym','workout','fitness','weight','yoga','bike'],s:['Fitness','running','BuyItForLife']},
- {k:['travel','flight','hotel','vacation','cruise','passport'],s:['travel','TravelHacks']},
- {k:['job','career','resume','interview','salary','hiring'],s:['careerguidance','jobs','resumes']},
- {k:['mba','college','degree','school','university','course'],s:['MBA','college','careerguidance']},
- {k:['baby','kids','parent','toddler'],s:['Parenting','BuyItForLife']},
- {k:['dog','puppy','cat ','cats','kitten','pet'],s:['dogs','cats','AskVet']}
+ {k:['crm','saas','software','app','apps','tools'],s:['CRM','SaaS','smallbusiness','sales','salesforce','hubspot','Entrepreneur','startups']},
+ {k:['marketing','seo','ads','advertising','social media','email list','newsletter'],s:['marketing','SEO','PPC','digital_marketing','socialmedia','content_marketing','Emailmarketing','smallbusiness']},
+ {k:['sales','prospect','lead','cold email'],s:['sales','salestechniques','smallbusiness','Entrepreneur','startups','salesforce']},
+ {k:['business','startup','llc','entrepreneur','invoice','accounting','vendor','vendors'],s:['smallbusiness','Entrepreneur','startups','business','sweatystartup','EntrepreneurRideAlong','Accounting']},
+ {k:['computer','pc','laptop','desktop','gpu','graphics card','gaming pc','chromebook'],s:['buildapc','techsupport','SuggestALaptop','laptops','pcmasterrace','buildapcforme','hardware','computers']},
+ {k:['iphone','ipad','mac','macbook','airpods'],s:['apple','iphone','mac','ipad','gadgets','techsupport']},
+ {k:['phone','tv','headphones','camera','monitor','router','tech','gadget','smart home'],s:['gadgets','techsupport','BuyItForLife','technology','hardware','headphones','HomeTheater','homeautomation']},
+ {k:['cybersecurity','security','antivirus','vpn','password'],s:['cybersecurity','netsec','sysadmin','msp','privacy','techsupport']},
+ {k:['sourdough','bread','baking'],s:['Breadit','Sourdough','Baking','Cooking','AskCulinary']},
+ {k:['air fryer','kitchen','recipe','cooking','knife','pans','blender','meal'],s:['Cooking','AskCulinary','BuyItForLife','Frugal','cookingforbeginners','airfryer','MealPrepSunday','KitchenConfidential']},
+ {k:['mattress','vacuum','furniture','home','house','roof','lawn','appliance','cleaning'],s:['BuyItForLife','HomeImprovement','homeowners','DIY','Frugal','CleaningTips','lawncare','Appliances']},
+ {k:['car','truck','suv','honda','toyota','ford','tesla','ev ','tire','cr-v'],s:['whatcarshouldIbuy','MechanicAdvice','cars','askcarsales','electricvehicles','autodetailing','Cartalk']},
+ {k:['budget','credit','invest','retire','mortgage','money','bank','loan','tax'],s:['personalfinance','Frugal','investing','financialindependence','Bogleheads','tax','FirstTimeHomeBuyer']},
+ {k:['running','shoes','gym','workout','fitness','yoga','bike'],s:['Fitness','running','bodyweightfitness','xxfitness','homegym','cycling','yoga','BuyItForLife']},
+ {k:['travel','flight','hotel','vacation','cruise','passport'],s:['travel','TravelHacks','solotravel','onebag','awardtravel','Shoestring','Cruise']},
+ {k:['job','career','resume','interview','salary','hiring'],s:['careerguidance','jobs','resumes','AskHR','interviews','careeradvice','WorkOnline']},
+ {k:['mba','college','degree','school','university','course'],s:['MBA','college','GradSchool','ApplyingToCollege','careerguidance','OnlineEducation']},
+ {k:['baby','kids','parent','toddler'],s:['Parenting','NewParents','Mommit','daddit','BuyItForLife']},
+ {k:['dog','puppy','cat ','cats','kitten','pet'],s:['dogs','DogAdvice','puppy101','cats','CatAdvice','AskVet']}
 ];
 const SITES=[
  {k:['iphone','ipad','mac','airpods','apple'],s:['apple.com','consumerreports.org','cnet.com']},
@@ -296,11 +297,11 @@ const SITES=[
  {k:['mba','college','university','degree'],s:['usnews.com','ed.gov']},
  {k:['leadership','management','strategy'],s:['hbr.org','mckinsey.com']}
 ];
-function suggest(table,topic,dflt){const t=' '+clean(topic).toLowerCase().replace(/[^a-z0-9\- ]/g,' ')+' ';const out=[];
+function suggest(table,topic,dflt,n){const t=' '+clean(topic).toLowerCase().replace(/[^a-z0-9\- ]/g,' ')+' ';const out=[];
   table.forEach(r=>{if(r.k.some(k=>t.includes(' '+k)))r.s.forEach(s=>{if(!out.includes(s))out.push(s);});});
-  return (out.length?out:(dflt||[])).slice(0,4);}
+  return (out.length?out:(dflt||[])).slice(0,n||4);}
 const normSub=s=>clean(s).replace(/^\/?r\//i,'').replace(/\s/g,'');
-function allSubs(a){const out=[];[...(a.subs||[]),...list(a.sub).map(normSub)].forEach(x=>{if(x&&!out.some(y=>y.toLowerCase()===x.toLowerCase()))out.push(x);});return out.slice(0,5);}
+function allSubs(a){const out=[];[...(a.subs||[]),...list(a.sub).map(normSub)].forEach(x=>{if(x&&!out.some(y=>y.toLowerCase()===x.toLowerCase()))out.push(x);});return out.slice(0,8);}
 function normSite(s){let d=clean(s).replace(/^https?:\/\//i,'').replace(/^www\./i,'').replace(/\/.*$/,'').replace(/\s/g,'').toLowerCase();
   let fixed=false;if(d&&!d.includes('.')){d+='.com';fixed=true;}return {d,fixed};}
 
@@ -656,7 +657,7 @@ function stepHTML(st,i,active){
     if(st.coach)field+=`<div class="coachbox" data-coach="${st.k}">${coachHTML(st)}</div>`;
     if(st.tip)field+=`<div class="hint">${esc(st.tip)}</div>`;
   } else if(st.type==='sub'){
-    const sug=suggest(SUBS,S.a.topic,[]);
+    const sug=suggest(SUBS,S.a.topic,[],8);
     if(S.a.subs===undefined)S.a.subs=sug.slice(0,3);
     const sel=S.a.subs||[];const none=!allSubs(S.a).length;
     field=`<div class="sugl">Suggested communities for your topic</div>
@@ -778,6 +779,7 @@ function renderResult(){
   if(!q){box.innerHTML='';return;}
   const extra=p.extra?p.extra(S.a,q):null;
   const notes=p.notes?p.notes(S.a):[];
+  if(['google','reddit','site'].includes(S.pid)||(S.pid==='facebook'&&S.a.where!=='mkt')){if(q.split(/\s+/).length>32)notes.push('Heads up: Google only reads the first 32 words of a search. Remove a few communities or words so nothing gets cut off.');}
   const anim=box.dataset.shown?' noanim':''; box.dataset.shown='1';
   const same=!S.override&&clean(q).toLowerCase()===lazy.toLowerCase();
   box.innerHTML=`<div class="result${anim}">
