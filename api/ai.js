@@ -72,9 +72,16 @@ module.exports = async (req, res) => {
       if (!query) return res.status(400).json({ error: 'No search' });
       const out = await askClaude(
         'You are Mr. Paul, a friendly teacher who helps people search smarter. Reply with JSON only. Never add specific company, brand or local business names the user did not use.',
-        `Platform: ${platform}\nSyntax rules: ${RULES[platform]}\nThe user's search: ${query}\n\nSuggest ONE improved version that keeps the user's intent and follows the platform's syntax rules exactly. Small, smart changes only (fix grouping, word order, add one or two useful words, an OR group or an exclusion). Do NOT put quotes around the main topic just to make it exact; leave it unquoted so the search engine can find close matches. Only use quotes for names or multi-word phrases that lose their meaning when split (like \"free trial\", \"small business\" or a person's name). Give 1 or 2 short reasons a beginner understands.\nReturn only: {"query":"...","why":["...","..."]}\nIf it is already strong, return the same query with why ["Already strong: ..."].`
+        `Platform: ${platform}\nSyntax rules: ${RULES[platform]}\nThe user's search: ${query}\n\nSuggest 2 to 4 SEPARATE small improvements the user can pick one by one. Each must work on its own and follow the platform's syntax rules exactly. Types:\n- "add": text to put at the end (an extra word, an OR group in parentheses, or an exclusion like -jobs)\n- "prefix": text to put at the front (like best)\n- "replace": {"from": an EXACT piece of the user's search, "to": the improved piece} (for example wrapping a multi-word phrase in quotes, or grouping words with OR in parentheses)\nRules: do not quote the main topic just to make it exact unless the user needs exact wording; quotes are for names and phrases that lose meaning when split. Never use square brackets. Each change gets a short label (under 6 words) and a one-sentence reason a beginner understands.\nReturn only: {"changes":[{"label":"...","add":"..."} or {"label":"...","prefix":"..."} or {"label":"...","replace":{"from":"...","to":"..."}}, each with "why":"..."]}\nIf the search is already strong, return {"changes":[],"note":"one short sentence why"}.`
       );
-      return res.json({ query: clip(out.query, 400), why: Array.isArray(out.why) ? out.why.slice(0, 3).map(w => clip(w, 200)) : [] });
+      const changes = (Array.isArray(out.changes) ? out.changes : []).slice(0, 4).map(c => {
+        const o = { label: clip(c.label, 60), why: clip(c.why, 200) };
+        if (c.replace && c.replace.from && c.replace.to) o.replace = { from: clip(c.replace.from, 200), to: clip(c.replace.to, 200) };
+        else if (c.prefix) o.prefix = clip(c.prefix, 100);
+        else if (c.add) o.add = clip(c.add, 150);
+        return o;
+      }).filter(c => c.label && (c.replace || c.prefix || c.add) && !/[\[\]]/.test(JSON.stringify(c.replace || c.prefix || c.add)));
+      return res.json({ changes, note: clip(out.note, 200) });
     }
     return res.status(400).json({ error: 'Unknown mode' });
   } catch (e) {
