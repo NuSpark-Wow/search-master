@@ -40,7 +40,7 @@ h1{font-family:'Lora',Georgia,serif;font-weight:700;text-align:center;font-size:
 .picker.open{display:block}
 .home h1{font-size:clamp(22px,2.5vw,30px);margin-bottom:6px}
 .home .sub{font-size:16px;margin-bottom:14px}
-.card.home{padding:34px 26px 32px}
+.card.home{padding:34px 26px 32px;display:flex;flex-direction:column;justify-content:center}
 .home .grid .pbtn{padding:10px 4px}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .pbtn{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.14);color:var(--cream);border-radius:16px;padding:12px 6px;cursor:pointer;font-family:inherit;transition:.15s}
@@ -389,6 +389,7 @@ x:{
   how:a=>['Tap <b>Copy</b>.','Open <b>X</b> and go to the <b>Explore</b> (search) page. You need to be logged in.','Paste and press <b>Enter</b>.','Tap <b>Latest</b> for the newest posts or <b>Top</b> for the most popular.'],
   examples:[{label:'Popular eclipse photos',a:{topic:'solar eclipse',phrase:'',from:'',pop:'1000',when:'',media:'media',ex:'giveaway'}}]
 }};
+const HOME_H=Math.max(0,parseInt(new URLSearchParams(location.search).get('h'),10)||0);
 const ORDER=['google','youtube','reddit','site','facebook','linkedin','amazon','x'];
 
 /* ---------- State ---------- */
@@ -410,6 +411,7 @@ window.addEventListener('load',postHeight);
 function renderHome(){
   S={view:'home',pid:null,a:{},cur:0,phase:null,fin:false};
   app.classList.add('home');
+  app.style.minHeight=HOME_H?HOME_H+'px':'';
   app.innerHTML=`
     <div class="label">Learn...Wow! Search Master</div>
     <h1>Find the Right Results the First Time</h1>
@@ -442,6 +444,7 @@ function openModule(pid,example){
 }
 function renderModule(){
   app.classList.remove('home');
+  app.style.minHeight='';
   const p=P[S.pid], vs=visible();
   let html=`
     <div class="topbar">
