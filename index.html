@@ -247,6 +247,15 @@ function aiParts(a){const out=[];aiGroups(a).forEach(({g,mode})=>{
 function topicPart(a,k,eng){const t=clean(a[k]);if(!t)return [];
   if(a[k+'_x']==='exact'&&t.includes(' '))return [[`"${t}"`,`In quotes: only pages with this exact phrase. Fewer, tighter results.${eng==='Google'?' Ads and map listings may still show similar words.':''}`]];
   return [[t,`No quotes: ${eng} also finds close matches, so you get more results.`]];}
+function liTitleKeys(){return (S.ai&&S.ai.qs||[]).map((q,n)=>q.titles?'ai'+n:null).filter(Boolean);}
+function liTitleVariants(a){return liTitleKeys().flatMap(k=>isEmpty(a[k])?[]:(Array.isArray(a[k])?a[k]:[a[k]]));}
+function liOtherGroups(a){const tk=liTitleKeys();return ['ai0','ai1'].filter(k=>!tk.includes(k)&&!isEmpty(a[k])).map(k=>({g:Array.isArray(a[k])?a[k]:[a[k]],mode:a[k+'_m']||'or'}));}
+function liXray(a){if(a.type!=='people')return null;const tv=liTitleVariants(a);
+  const t=[...list(a.titles),...tv].filter((v,i,arr)=>arr.findIndex(x=>x.toLowerCase()===v.toLowerCase())===i).map(qt);if(!t.length)return null;
+  const parts=['site:linkedin.com/in/',orGroup(t)];
+  liOtherGroups(a).forEach(({g,mode})=>parts.push(g.length>1&&mode!=='and'?`(${g.map(qt).join(' OR ')})`:g.map(qt).join(' ')));
+  const m=words(a.must).map(qt);if(m.length)parts.push(m.length>1&&(a.mode||'any')!=='all'?`(${m.join(' OR ')})`:m.join(' '));
+  exWords(a).forEach(w=>parts.push('-'+qt(w)));return parts.join(' ');}
 function exWords(a){const out=[];[...words(a.ex),...(a.exs||[])].forEach(w=>{if(!out.some(x=>x.toLowerCase()===w.toLowerCase()))out.push(w);});return out;}
 function minusList(a,why){return exWords(a).map(w=>['-'+qt(w),why||'The minus sign removes results with this word.']);}
 const VENDORISH=/software|vendor|service|platform|tool|compan|agency|saas|provider|firm|consult/i;
@@ -259,6 +268,7 @@ const SUBS=[
  {k:['marketing','seo','ads','advertising','social media','email list'],s:['marketing','SEO','PPC','smallbusiness']},
  {k:['sales','prospect','lead'],s:['sales','smallbusiness']},
  {k:['business','startup','llc','entrepreneur','invoice','accounting'],s:['smallbusiness','Entrepreneur','startups']},
+ {k:['computer','pc','laptop','desktop','gpu','graphics card','gaming pc','chromebook'],s:['buildapc','techsupport','SuggestALaptop','laptops']},
  {k:['iphone','ipad','mac','macbook','airpods'],s:['apple','gadgets','techsupport']},
  {k:['laptop','phone','computer','tv','headphones','camera','monitor','router','tech'],s:['gadgets','techsupport','BuyItForLife']},
  {k:['sourdough','bread','baking'],s:['Breadit','Baking','Cooking']},
@@ -290,6 +300,7 @@ function suggest(table,topic,dflt){const t=' '+clean(topic).toLowerCase().replac
   table.forEach(r=>{if(r.k.some(k=>t.includes(' '+k)))r.s.forEach(s=>{if(!out.includes(s))out.push(s);});});
   return (out.length?out:(dflt||[])).slice(0,4);}
 const normSub=s=>clean(s).replace(/^\/?r\//i,'').replace(/\s/g,'');
+function allSubs(a){const out=[];[...(a.subs||[]),...list(a.sub).map(normSub)].forEach(x=>{if(x&&!out.some(y=>y.toLowerCase()===x.toLowerCase()))out.push(x);});return out.slice(0,5);}
 function normSite(s){let d=clean(s).replace(/^https?:\/\//i,'').replace(/^www\./i,'').replace(/\/.*$/,'').replace(/\s/g,'').toLowerCase();
   let fixed=false;if(d&&!d.includes('.')){d+='.com';fixed=true;}return {d,fixed};}
 
@@ -358,12 +369,14 @@ reddit:{
   steps:[
     {k:'topic',coach:'exact',label:'What do you want real opinions on?',type:'text',ex:'crm software · project management tools · air fryer · Honda CR-V',req:true},
     {k:'want',label:'What do you want to hear?',type:'multi',chips:[{v:'rec',l:'Recommendations',q:'recommendations'},{v:'worth',l:'Is it worth it?',q:'"worth it"'},{v:'reg',l:'Regrets & problems',q:'regret'},{v:'alt',l:'Alternatives',q:'alternatives'}]},
-    {k:'sub',label:'Which community? (optional)',type:'sub',ex:'smallbusiness · BuyItForLife (name only, no r/)'},
+    {k:'sub',label:'Which communities?',type:'sub',ex:'buildapc, techsupport (names only, no r/, separate with commas)'},
     {k:'when',label:'How recent?',type:'single',chips:[{v:'',l:'Any time'},{v:'365',l:'Past year'},{v:'730',l:'Past 2 years'}]},
     {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'meme, giveaway, crypto',split:true}
   ],
-  build(a){const p=[];const s=normSub(a.sub);
-    p.push([s?`site:reddit.com/r/${s}`:'site:reddit.com',s?'Searches only that one Reddit community.':'Only shows results from Reddit.']);
+  build(a){const p=[];const subs=allSubs(a);
+    if(!subs.length)p.push(['site:reddit.com','Only shows results from Reddit.']);
+    else if(subs.length===1)p.push([`site:reddit.com/r/${subs[0]}`,'Searches only that one Reddit community.']);
+    else p.push([`(${subs.map(x=>'site:reddit.com/r/'+x).join(' OR ')})`,`Searches ${subs.length} communities at once. OR means a thread from any of them counts, and parentheses keep them together.`]);
     p.push(...topicPart(a,'topic','Google'));
     p.push(...aiParts(a));
     const w=chipVals(this.steps[1],a.want).map(c=>c.q);
@@ -371,8 +384,8 @@ reddit:{
     if(a.when)p.push([`after:${daysAgo(+a.when)}`,'Only threads posted after this date. Good for software, prices and anything that changes.']);
     p.push(...minusList(a,'Removes threads with this word.'));
     return p;},
-  notes(a){const s=normSub(a.sub).toLowerCase();const t=clean(a.topic).toLowerCase().replace(/\s/g,'');
-    return s&&s.length>3&&t.includes(s)?[`You’re already inside r/${normSub(a.sub)}, so you can drop those words from your topic for more results.`]:[];},
+  notes(a){const t=clean(a.topic).toLowerCase().replace(/\s/g,'');const hit=allSubs(a).find(x=>x.length>3&&t.includes(x.toLowerCase()));
+    return hit?[`You’re already inside r/${hit}, so you can drop those words from your topic for more results.`]:[];},
   lazy:a=>clean(a.topic)+' reddit',
   url:q=>google(q),
   how:a=>['Tap <b>Copy</b>.','Go to <b>google.com</b>, not Reddit. The <code>site:reddit.com</code> part does the work.','Paste and press <b>Enter</b>.',SAVE_TIP],
@@ -434,22 +447,24 @@ facebook:{
 },
 linkedin:{
   name:'LinkedIn',title:'LinkedIn Searches',ps:'People, jobs & more',ic:'💼',aiAfter:'titles',
-  tip:'LinkedIn speaks real Boolean: AND, OR and NOT, in capital letters, plus quotes and parentheses. Parentheses work like math: LinkedIn reads what’s inside first.',
+  tip:'LinkedIn speaks real Boolean: AND, OR and NOT, in capital letters, plus quotes and parentheses. LinkedIn reads AND before OR, so OR groups need parentheses. This tool adds them for you.',
   steps:[
     {k:'type',label:'What are you looking for?',type:'single',chips:[{v:'people',l:'People'},{v:'jobs',l:'Jobs'},{v:'companies',l:'Companies'},{v:'posts',l:'Posts'}],req:true},
     {k:'titles',coach:'li',type:'text',req:true,
       label:a=>({companies:'Company type or industry (separate with commas)',posts:'Topic (separate options with commas)'}[a.type]||'Job titles (separate with commas)'),
-      ex:a=>({people:'VP Marketing, Head of Sales · registered nurse',jobs:'marketing manager · project manager',companies:'SaaS, cybersecurity · physical therapy',posts:'AI in sales · remote work · leadership'}[a.type]||'VP Marketing, Head of Sales')},
+      ex:a=>({people:'VP Marketing, Head of Sales · registered nurse',jobs:'marketing manager · project manager',companies:'SaaS, cybersecurity · physical therapy',posts:'AI in sales · remote work · leadership'}[a.type]||'VP Marketing, Head of Sales'),
+      tip:'LinkedIn has no * wildcards. List each version instead, separated by commas (manager, management).'},
     {k:'must',type:'text',split:true,label:'Must-have words? (optional)',
       ex:a=>({people:'SaaS, healthcare',jobs:'remote, hybrid',companies:'startup, nonprofit',posts:'tips, "case study"'}[a.type]||'SaaS, remote')},
     {k:'mode',label:'Match any or all of your must-have words?',type:'single',def:'any',chips:[{v:'any',l:'Any of these'},{v:'all',l:'All of these'}],showIf:a=>words(a.must).length>1},
     {k:'ex',type:'text',split:true,label:'Anything to leave out? (optional)',
-      ex:a=>({people:'intern, recruiter',jobs:'intern, contract',companies:'staffing, recruiting',posts:'hiring, webinar'}[a.type]||'intern, recruiter')}
+      ex:a=>({people:'intern, recruiter',jobs:'intern, contract',companies:'staffing, recruiting',posts:'hiring, webinar'}[a.type]||'intern, recruiter'),
+      tip:'Careful: NOT manager also removes “senior manager” and “product manager.” And on free LinkedIn, NOT doesn’t always work. If results ignore it, use LinkedIn’s filters instead.'}
   ],
   build(a){const p=[];
-    const t=list(a.titles).map(qt);
-    if(t.length)p.push([orGroup(t),t.length>1?'OR finds any of these. Parentheses keep them together as one choice.':'Your main search words. Quotes keep a title together.']);
-    aiGroups(a).forEach(({g,mode})=>{if(g.length>1&&mode!=='and')p.push([`AND (${g.map(qt).join(' OR ')})`,'At least one of your picks must be there. Parentheses group them.']);else g.forEach(w=>p.push(['AND '+qt(w),'AND means this must be there too.']));});
+    const tv=liTitleVariants(a);const t=[...list(a.titles),...tv.filter(v=>!list(a.titles).some(x=>x.toLowerCase()===v.toLowerCase()))].map(qt);
+    if(t.length)p.push([orGroup(t),t.length>1?(tv.length?'Your titles plus Mr. Paul’s similar titles. OR finds any of them, and parentheses keep them together as one choice.':'OR finds any of these. Parentheses keep them together as one choice.'):'Your main search words. Quotes keep a title together.']);
+    liOtherGroups(a).forEach(({g,mode})=>{if(g.length>1&&mode!=='and')p.push([`AND (${g.map(qt).join(' OR ')})`,'At least one of your picks must be there. Parentheses group them.']);else g.forEach(w=>p.push(['AND '+qt(w),'AND means this must be there too.']));});
     const m=words(a.must).map(qt);
     if(m.length===1)p.push(['AND '+m[0],'AND means this word must be there too.']);
     else if(m.length>1){ if((a.mode||'any')==='all')m.forEach(w=>p.push(['AND '+w,'All of these must be there.']));
@@ -465,8 +480,12 @@ linkedin:{
   how:a=>{const tab={jobs:'Jobs',companies:'Companies',posts:'Posts'}[a.type]||'People';
     const l=['Tap <b>Copy</b>.','Open <b>LinkedIn</b> and tap the search bar at the top.','Paste and press <b>Enter</b>.',
     `Tap <b>${tab}</b>, then use the filters: <b>Locations</b>${a.type==='jobs'?', <b>Date posted</b>, <b>Remote</b>':a.type==='posts'?', <b>Date posted</b>, <b>Content type</b>':', <b>Current company</b>, <b>Industry</b>'}. Using Run This Search? If LinkedIn opens on All, tap <b>${tab}</b>.`];
+    l.push('Start broad: look over the first 20 to 30 results, then add words or filters to narrow it.');
+    if(exWords(a).length)l.push('If results still show your leave-out words, NOT may not be working on your free account. Remove them from the search and use LinkedIn’s filters instead.');
     if(a.type==='jobs')l.push('Turn on <b>Set alert</b> to get new matching jobs by email.');
     l.push(SAVE_TIP);return l;},
+  extra:(a,q)=>{const x=liXray(a);return x?{t:'Google X-Ray version (paste into Google)',d:'Free LinkedIn limits how many people you can see. This Google search finds LinkedIn profiles with the same titles and words, with no limit.',q:x}:null;},
+  notes:a=>{const q=baseQuery();const ops=(q.match(/\b(AND|OR|NOT)\b/g)||[]).length;return ops>=6||q.length>160?['Long search. Free LinkedIn may quietly cut off long searches without warning. If the results look odd, remove a few titles or leave-out words.']:[];},
   examples:[{label:'Find a remote marketing job',a:{type:'jobs',titles:'marketing manager, marketing director',must:'remote',ex:'intern'}}]
 },
 amazon:{
@@ -534,7 +553,7 @@ function visible(){
   if(i<0)return base;
   let extra=[];
   if(S.ai.status==='loading')extra=[{k:'_ai',type:'loading',label:'Mr. Paul is thinking of a quick question…'}];
-  else if(S.ai.status==='done')extra=S.ai.qs.map((q,n)=>({k:'ai'+n,label:q.q,type:p.aiSingle?'single':'multi',ai:true,chips:q.options.map(o=>({v:o,l:o}))}));
+  else if(S.ai.status==='done')extra=S.ai.qs.map((q,n)=>({k:'ai'+n,label:q.q,type:p.aiSingle?'single':'multi',ai:true,titles:!!q.titles,chips:q.options.map(o=>({v:o,l:o}))}));
   return [...base.slice(0,i+1),...extra,...base.slice(i+1)];
 }
 const done=()=>S.fin||S.cur>=visible().length;
@@ -561,7 +580,7 @@ function fetchFollowups(topic){
   callAI({mode:'followup',platform:P[pid].name,topic}).then(d=>{
     if(S.pid!==pid||S.ai.topic!==topic||S.ai.status!=='loading')return;
     const qs=(d&&Array.isArray(d.questions)?d.questions:[]).filter(q=>q&&q.q&&Array.isArray(q.options)&&q.options.length>=2).slice(0,2)
-      .map(q=>({q:String(q.q).slice(0,80),options:q.options.slice(0,6).map(o=>String(o).slice(0,40))}));
+      .map(q=>({q:String(q.q).slice(0,80),titles:!!q.titles,options:q.options.slice(0,6).map(o=>String(o).slice(0,40))}));
     const exclude=(d&&Array.isArray(d.exclude)?d.exclude:[]).filter(e=>e&&e.w).slice(0,4).map(e=>({w:String(e.w).slice(0,40),why:String(e.why||'').slice(0,140),strong:!!e.strong}));
     S.ai={status:qs.length?'done':'none',topic,qs,exclude};
     renderModule();
@@ -636,8 +655,18 @@ function stepHTML(st,i,active){
     if(st.split&&st.k==='ex')field+=exSuggestHTML();
     if(st.coach)field+=`<div class="coachbox" data-coach="${st.k}">${coachHTML(st)}</div>`;
     if(st.tip)field+=`<div class="hint">${esc(st.tip)}</div>`;
-  } else if(st.type==='sub'||st.type==='site'){
-    const isSub=st.type==='sub';
+  } else if(st.type==='sub'){
+    const sug=suggest(SUBS,S.a.topic,[]);
+    if(S.a.subs===undefined)S.a.subs=sug.slice(0,3);
+    const sel=S.a.subs||[];const none=!allSubs(S.a).length;
+    field=`<div class="sugl">Suggested communities for your topic</div>
+      <div class="chips"><button class="chip ${none?'on':''}" data-allr="1">All of Reddit</button>${sug.map(x=>`<button class="chip ${sel.includes(x)?'on':''}" data-subt="${esc(x)}">r/${esc(x)}</button>`).join('')}</div>
+      ${sug.length?`<div class="hint">${sel.length?`I picked ${sel.length} that fit your topic. Tap to remove or add. Each one you keep gets searched at the same time.`:'Tap any to add it. You can search several at the same time.'}</div>`:'<div class="hint">No suggestions for this topic yet. Type your own below, or leave it on All of Reddit.</div>'}
+      <div class="sugl" style="margin-top:12px">Or type your own</div>
+      <input type="text" data-k="sub" value="${esc(v||'')}" autocomplete="off" aria-label="${esc(label)}">
+      <div class="hint">Not sure of a name? Stick with the suggestions or All of Reddit.</div>`;
+  } else if(st.type==='site'){
+    const isSub=false;
     const topic=S.a.topic;
     const sug=isSub?suggest(SUBS,topic,[]):suggest(SITES,topic,['wikipedia.org','consumerreports.org']);
     const cur=isSub?normSub(v).toLowerCase():normSite(v).d;
@@ -651,7 +680,8 @@ function stepHTML(st,i,active){
     const dv=st.def!==undefined?st.def:(st.req?undefined:'');
     field=`<div class="chips">${st.chips.map(c=>{const on=st.type==='multi'?(v||[]).includes(c.v):(v??dv)===c.v;return `<button class="chip ${on?'on':''}" data-k="${st.k}" data-v="${esc(c.v)}" data-t="${st.type}">${esc(c.l)}</button>`;}).join('')}</div>`;
     if(st.type==='multi'&&(v||[]).length>1){
-      if(st.ai){const m=S.a[st.k+'_m']||'or';const and=S.pid==='linkedin'?'AND':'spaces';
+      if(st.ai&&st.titles){field+=`<div class="coachbox"><div class="cq"><b>✦ You picked ${v.length} similar titles.</b> They join your titles in one OR group, so anyone with any of these titles shows up.</div></div>`;}
+      else if(st.ai){const m=S.a[st.k+'_m']||'or';const and=S.pid==='linkedin'?'AND':'spaces';
         field+=`<div class="coachbox"><div class="cq"><b>✦ You picked ${v.length}. Should any one count, or all of them?</b>
           <label><input type="radio" name="m_${st.k}" data-mode="${st.k}" value="or" ${m==='or'?'checked':''}> Any one is fine <span>(joined with OR in parentheses: more results)</span></label>
           <label><input type="radio" name="m_${st.k}" data-mode="${st.k}" value="and" ${m==='and'?'checked':''}> Must have all of them <span>(${S.pid==='linkedin'?'joined with AND':'each word must appear'}: fewer results)</span></label></div></div>`;}
@@ -690,17 +720,19 @@ function wireModule(){
   const ex=document.getElementById('example'); if(ex)ex.onclick=()=>openModule(S.pid,true);
   const sk=document.getElementById('skipAI'); if(sk)sk.onclick=()=>{S.ai.status='none';renderModule();};
   app.querySelectorAll('input[type=text]').forEach(inp=>{
-    inp.oninput=()=>{S.a[inp.dataset.k]=inp.value;changed();
+    inp.oninput=()=>{S.a[inp.dataset.k]=inp.value;changed();if(S.pid==='reddit'&&inp.dataset.k==='topic')delete S.a.subs;
       const st=P[S.pid].steps.find(s=>s.k===inp.dataset.k);
       const pv=app.querySelector(`[data-prev="${inp.dataset.k}"]`); if(pv&&st)pv.innerHTML=chipsPreview(st);
       const cb=app.querySelector(`[data-coach="${inp.dataset.k}"]`); if(cb&&st){cb.innerHTML=coachHTML(st);postHeight();}
       const fn=app.querySelector(`[data-fixnote="site"]`); if(fn&&inp.dataset.k==='site')fn.innerHTML=fixNote(inp.value);
-      if(st&&(st.type==='sub'||st.type==='site'))app.querySelectorAll(`[data-pick="${st.k}"]`).forEach(c=>{
+      if(st&&st.type==='site')app.querySelectorAll(`[data-pick="${st.k}"]`).forEach(c=>{
         const cur=st.type==='sub'?normSub(inp.value).toLowerCase():normSite(inp.value).d;c.classList.toggle('on',st.type==='sub'?cur===c.dataset.v.toLowerCase():(cur&&cur===c.dataset.v));});
       refresh();};
     inp.onkeydown=e=>{if(e.key==='Enter'){const b=inp.closest('.step').querySelector('.go');if(b)b.click();else inp.blur();}};
   });
   app.querySelectorAll('[data-pick]').forEach(c=>c.onclick=()=>{S.a[c.dataset.pick]=c.dataset.v;changed();renderModule();});
+  app.querySelectorAll('[data-subt]').forEach(c=>c.onclick=()=>{const x=c.dataset.subt;const sel=S.a.subs||[];S.a.subs=sel.includes(x)?sel.filter(y=>y!==x):[...sel,x];changed();renderModule();});
+  app.querySelectorAll('[data-allr]').forEach(c=>c.onclick=()=>{S.a.subs=[];S.a.sub='';changed();renderModule();});
   app.querySelectorAll('.chip[data-k]').forEach(c=>c.onclick=()=>{
     const k=c.dataset.k,v=c.dataset.v;
     if(c.dataset.t==='multi'){const arr=S.a[k]||[];S.a[k]=arr.includes(v)?arr.filter(x=>x!==v):[...arr,v];}
