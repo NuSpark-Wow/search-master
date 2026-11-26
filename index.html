@@ -131,6 +131,16 @@ code,.q{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .editl{font-size:12.5px;color:var(--gold);font-weight:600;margin-bottom:6px}
 .bacol textarea{width:100%;background:rgba(0,0,0,.3);border:1.5px solid var(--gold);border-radius:10px;color:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;padding:8px 10px;margin-bottom:10px;resize:vertical;outline:none}
 .okline{color:var(--gold)}
+.recs{list-style:none;margin:0}
+.recs li{border-top:1px solid rgba(255,255,255,.08);padding:8px 0}
+.recs label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.recs input{width:20px;height:20px;accent-color:#F2B33D;margin-top:2px;flex-shrink:0}
+.recs b{display:block;font-size:14px}
+.recs code{display:inline-block;color:var(--gold);background:rgba(242,179,61,.12);border-radius:6px;padding:2px 6px;margin:3px 0;font-size:13px;word-break:break-word}
+.recs em{display:block;font-style:normal;font-size:13px;color:var(--soft)}
+.recprev{margin-top:8px;font-size:12.5px;color:var(--soft)}
+.recprev code{display:block;color:#fff;font-size:14px;margin-top:4px;word-break:break-word}
+.go:disabled{opacity:.45;cursor:not-allowed}
 .tipline{background:rgba(242,179,61,.1);border-radius:12px;padding:10px 12px;font-size:14px;margin:-6px 0 16px;line-height:1.45}
 .warnline{margin:-8px 0 14px;color:var(--gold)}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);background:var(--gold);color:var(--em2);font-weight:700;padding:10px 18px;border-radius:999px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
@@ -492,7 +502,7 @@ const HOME_H=Math.max(0,parseInt(new URLSearchParams(location.search).get('h'),1
 const ORDER=['google','youtube','reddit','site','facebook','linkedin','amazon','x'];
 
 /* ---------- State ---------- */
-const fresh=()=>({view:'home',pid:null,a:{},cur:0,phase:null,fin:false,ai:{status:'idle',topic:'',qs:[]},override:null,imp:null,impFor:'',tried:false,aiDown:false});
+const fresh=()=>({view:'home',pid:null,a:{},cur:0,phase:null,fin:false,ai:{status:'idle',topic:'',qs:[]},override:null,imp:null,impFor:'',tried:false,aiDown:false,picks:[]});
 let S=fresh();
 const app=document.getElementById('app');
 const val=(st,k)=>{const f=st[k];return typeof f==='function'?f(S.a):f;};
@@ -624,7 +634,7 @@ function stepHTML(st,i,active){
   </div>`;
 }
 function fixNote(v){const {d,fixed}=normSite(v);return fixed?`We used <b>${esc(d)}</b>. Change it if that’s not right.`:'Type it like <b>hbr.org</b>. No https:// needed.';}
-function changed(){S.override=null;S.imp=null;S.tried=false;}
+function changed(){S.override=null;S.imp=null;S.tried=false;S.picks=[];S.accepted=false;}
 function wireModule(){
   document.getElementById('restart').onclick=()=>{openModule(S.pid);};
   document.getElementById('close').onclick=()=>{renderHome();postTop();};
@@ -698,14 +708,14 @@ function renderResult(){
     <ul class="parts">${parts.map(x=>`<li><code>${esc(x[0])}</code><span>${esc(x[1])}</span></li>`).join('')}</ul>
     ${notes.map(n=>`<p class="tipline">💡 ${esc(n)}</p>`).join('')}
     <div class="better">
-      ${S.override&&S.accepted&&!imp?`<span class="note okline">✓ Mr. Paul’s recommendation is in your After search. Try it!</span><button class="ghost" id="undoImp">Undo</button>`
-        :!imp||S.aiDown?''
+      ${S.override&&S.accepted?`<span class="note okline">✓ Mr. Paul’s recommendations are in your After search. Try it!</span><button class="ghost" id="undoImp">Undo</button>`
+        :!imp||S.aiDown||imp.status==='fail'||imp.status==='kept'?''
         :imp.status==='loading'?`<div class="note">✦ Mr. Paul is looking over your search…</div>`
-        :imp.status==='fail'?''
-        :imp.status==='kept'?''
-        :(!imp.query||imp.query===baseQuery())?`<div class="impcard"><h4>✦ Mr. Paul’s review</h4><p class="note" style="margin:0">Your search is already strong. ${esc((imp.why||[])[0]||'')}</p></div>`
-        :`<div class="impcard"><h4>✦ Mr. Paul’s recommendation</h4><code>${esc(imp.query)}</code><ul>${(imp.why||[]).map(w=>`<li>${esc(w)}</li>`).join('')}</ul>
-          <div class="row" style="margin-bottom:0"><button class="go" id="useImp">I accept the recommendation</button><button class="ghost" id="keepMine">Keep mine</button></div></div>`}
+        :!imp.changes.length?`<div class="impcard"><h4>✦ Mr. Paul’s review</h4><p class="note" style="margin:0">Your search is already strong. ${esc(imp.note||'')}</p></div>`
+        :`<div class="impcard"><h4>✦ Mr. Paul’s recommendations</h4><p class="note" style="margin:0 0 8px">Check the ones you want.</p>
+          <ul class="recs">${imp.changes.map((c,n)=>`<li><label><input type="checkbox" data-rec="${n}" ${S.picks.includes(n)?'checked':''}><span><b>${esc(c.label)}</b><code>${esc(changeText(c))}</code><em>${esc(c.why||'')}</em></span></label></li>`).join('')}</ul>
+          <div class="recprev"><span>Your search with these changes:</span><code id="recq">${esc(applyChanges(baseQuery(),S.picks.map(i=>imp.changes[i])))}</code></div>
+          <div class="row" style="margin:12px 0 0"><button class="go" id="useImp" ${S.picks.length?'':'disabled'}>Accept these recommendations</button><button class="ghost" id="keepMine">No thanks</button></div></div>`}
     </div>
     ${same?`<div class="nudge"><p><b>Your search is the same as what most people type.</b> Add a filter or two, or accept Mr. Paul’s recommendation above.</p>
       <div class="row" style="margin:10px 0 0">${canMore?'<button class="go" id="nudgeMore">Add more filters</button>':''}</div></div>`:`<div class="ba">
@@ -732,10 +742,15 @@ function renderResult(){
   if(extra){on('copyExtra',()=>copy(extra.q));on('runExtra',()=>openUrl(google(extra.q)));}
   on('again',()=>{S.fin=false;S.phase=null;changed();const k=p.tryAgain.k;S.cur=Math.max(0,visible().findIndex(s=>s.k===k));renderModule();
     const st=app.querySelector(`.step[data-i="${S.cur}"]`);if(st)st.scrollIntoView({behavior:'smooth',block:'center'});});
-  on('undoImp',()=>{S.override=null;S.accepted=false;S.imp=null;S.impFor=baseQuery();renderResult();refreshLive();});
+  on('undoImp',()=>{S.override=null;S.accepted=false;renderResult();refreshLive();});
   on('nudgeMore',()=>{S.fin=false;S.phase=null;S.cur=Math.min(S.cur+1,visible().length);renderModule();
     const st=app.querySelector(`.step[data-i="${S.cur}"]`);if(st)st.scrollIntoView({behavior:'smooth',block:'center'});});
-  on('useImp',()=>{S.override=S.imp.query;S.accepted=true;S.imp=null;renderResult();refreshLive();});
+  app.querySelectorAll('[data-rec]').forEach(cb=>cb.onchange=()=>{const n=+cb.dataset.rec;
+    S.picks=cb.checked?[...new Set([...S.picks,n])].sort():S.picks.filter(x=>x!==n);
+    const rq=document.getElementById('recq');if(rq)rq.textContent=applyChanges(baseQuery(),S.picks.map(i=>S.imp.changes[i]));
+    const ub=document.getElementById('useImp');if(ub)ub.disabled=!S.picks.length;});
+  on('useImp',()=>{if(!S.picks.length)return;S.override=applyChanges(baseQuery(),S.picks.map(i=>S.imp.changes[i]));S.accepted=true;renderResult();refreshLive();
+    const ba=app.querySelector('.ba');if(ba)ba.scrollIntoView({behavior:'smooth',block:'center'});});
   on('keepMine',()=>{S.imp={status:'kept'};renderResult();});
   const eq=document.getElementById('editQ');
   if(eq){eq.oninput=()=>{const v=clean(eq.value);S.override=v&&v!==baseQuery()?v:null;S.accepted=false;
@@ -772,6 +787,13 @@ function explain(q){
     out.push([t,w]);}
   return out;
 }
+function applyChanges(base,list){let q=base;
+  list.forEach(c=>{
+    if(c.replace){if(q.includes(c.replace.from))q=q.replace(c.replace.from,c.replace.to);}
+    else if(c.prefix){if(!(' '+q+' ').includes(' '+c.prefix+' '))q=c.prefix+' '+q;}
+    else if(c.add){if(!(' '+q+' ').includes(' '+c.add+' '))q=q+' '+c.add;}
+  });return clean(q);}
+function changeText(c){return c.replace?`${c.replace.from} → ${c.replace.to}`:c.prefix?`${c.prefix} (in front)`:c.add;}
 let impTimer=null;
 function autoImprove(){
   if(S.aiDown||S.override||S.ai.status==='off'&&false)return;
@@ -782,7 +804,9 @@ function autoImprove(){
     const pid=S.pid;S.impFor=base;S.imp={status:'loading'};renderResult();
     callAI({mode:'improve',platform:P[pid].name,query:base}).then(d=>{
       if(S.pid!==pid||S.impFor!==base||S.override)return;
-      S.imp=d&&d.query?{status:'done',query:String(d.query).slice(0,400),why:(Array.isArray(d.why)?d.why:[]).slice(0,3).map(w=>String(w).slice(0,200))}:{status:'fail'};renderResult();
+      if(!d||!Array.isArray(d.changes)){S.imp={status:'fail'};renderResult();return;}
+      const ch=d.changes.filter(c=>c&&c.label&&(c.add||c.prefix||(c.replace&&base.includes(c.replace.from)))).slice(0,4);
+      S.imp={status:'done',changes:ch,note:d.note||''};S.picks=[];renderResult();
     }).catch(()=>{if(S.pid===pid&&S.impFor===base){S.imp={status:'fail'};renderResult();}});
   },900);
 }
