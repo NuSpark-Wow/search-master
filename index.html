@@ -127,6 +127,7 @@ code,.q{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .impcard h4{font-family:'Lora',Georgia,serif;font-size:17px;margin-bottom:6px}
 .impcard code{display:block;color:#fff;word-break:break-word;margin-bottom:8px;font-size:14px}
 .impcard ul{margin-left:18px;font-size:14px;line-height:1.5}
+.nudge{background:rgba(242,179,61,.08);border:1.5px dashed var(--line);border-radius:14px;padding:14px;margin-bottom:18px;font-size:14px;line-height:1.5}
 .tipline{background:rgba(242,179,61,.1);border-radius:12px;padding:10px 12px;font-size:14px;margin:-6px 0 16px;line-height:1.45}
 .warnline{margin:-8px 0 14px;color:var(--gold)}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);background:var(--gold);color:var(--em2);font-weight:700;padding:10px 18px;border-radius:999px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
@@ -676,13 +677,15 @@ function refresh(){
 /* ---------- Result ---------- */
 function renderResult(){
   const p=P[S.pid],q=query(),lazy=clean(p.lazy(S.a));
-  const parts=S.override?[[S.override,'Mr. Paul’s improved version of your search.']]:p.build(S.a);
+  const parts=S.override?explain(S.override):p.build(S.a);
   const box=document.getElementById('result');
   if(!q){box.innerHTML='';return;}
   const extra=p.extra?p.extra(S.a,q):null;
   const notes=p.notes?p.notes(S.a):[];
   const anim=box.dataset.shown?' noanim':''; box.dataset.shown='1';
   const imp=S.imp;
+  const same=!S.override&&clean(q).toLowerCase()===lazy.toLowerCase();
+  const canMore=S.cur<visible().length-1||(S.fin&&S.cur<visible().length);
   box.innerHTML=`<div class="result${anim}">
     <div class="rh">Here’s your search</div>
     <div class="qbox q">${esc(q)}</div>
@@ -691,16 +694,18 @@ function renderResult(){
     <ul class="parts">${parts.map(x=>`<li><code>${esc(x[0])}</code><span>${esc(x[1])}</span></li>`).join('')}</ul>
     ${notes.map(n=>`<p class="tipline">💡 ${esc(n)}</p>`).join('')}
     <div class="better">
-      ${!imp?`<button class="go gold2" id="improve">✨ Make my search better</button><span class="note">Mr. Paul reviews your search and suggests an upgrade.</span>`
+      ${S.override&&!imp?`<span class="note">✓ Improved by Mr. Paul.</span><button class="ghost" id="undoImp">Undo</button>`
+        :!imp?`<button class="go gold2" id="improve">✨ Make my search better</button><span class="note">Mr. Paul reviews your search and suggests an upgrade.</span>`
         :imp.status==='loading'?`<div class="note">Mr. Paul is looking over your search…</div>`
         :imp.status==='fail'?`<div class="note">Mr. Paul couldn’t review it right now. Your search above is ready to use.</div>`
         :`<div class="impcard"><h4>Mr. Paul’s suggestion</h4><code>${esc(imp.query)}</code><ul>${(imp.why||[]).map(w=>`<li>${esc(w)}</li>`).join('')}</ul>
           ${imp.query&&imp.query!==q?`<div class="row" style="margin-bottom:0"><button class="go" id="useImp">Use this search</button><button class="ghost" id="keepMine">Keep mine</button></div>`:''}</div>`}
     </div>
-    <div class="ba">
+    ${same?`<div class="nudge"><p><b>Your search is the same as what most people type.</b> Add a filter or two, or let Mr. Paul upgrade it.</p>
+      <div class="row" style="margin:10px 0 0">${canMore?'<button class="go" id="nudgeMore">Add more filters</button>':''}${!S.override?'<button class="ghost" id="nudgeImp">✨ Make my search better</button>':''}</div></div>`:`<div class="ba">
       <div class="bacol b"><h4>Before: what most people type</h4><code>${esc(lazy)}</code><button class="mini" id="runLazy">Try it ↗</button></div>
       <div class="bacol a"><h4>After: the Search Master way</h4><code>${esc(q)}</code><button class="mini" id="runSmart">Try it ↗</button></div>
-    </div>
+    </div>`}
     ${extra?`<div class="extra"><b>${esc(extra.t)}</b>${extra.d?`<p class="note" style="margin:4px 0 0">${esc(extra.d)}</p>`:''}<code>${esc(extra.q)}</code><button class="mini" style="color:var(--gold)" id="copyExtra">Copy</button> <button class="mini" style="color:var(--gold)" id="runExtra">Run on Google ↗</button></div>`:''}
     ${S.phase==='how'?'':`<div class="changes" id="changes">
       ${S.phase==='changes'
@@ -724,6 +729,10 @@ function renderResult(){
     callAI({mode:'improve',platform:p.name,query:base}).then(d=>{if(S.pid!==pid||!S.imp)return;
       if(d&&d.query){S.imp={status:'done',query:String(d.query).slice(0,400),why:(Array.isArray(d.why)?d.why:[]).slice(0,3).map(w=>String(w).slice(0,200))};}else S.imp={status:'fail'};renderResult();})
     .catch(()=>{if(S.pid===pid&&S.imp){S.imp={status:'fail'};renderResult();}});});
+  on('undoImp',()=>{S.override=null;renderResult();refreshLive();});
+  on('nudgeImp',()=>{const b=document.getElementById('improve');if(b)b.click();});
+  on('nudgeMore',()=>{S.fin=false;S.phase=null;S.cur=Math.min(S.cur+1,visible().length);renderModule();
+    const st=app.querySelector(`.step[data-i="${S.cur}"]`);if(st)st.scrollIntoView({behavior:'smooth',block:'center'});});
   on('useImp',()=>{S.override=S.imp.query;S.imp=null;renderResult();refreshLive();});
   on('keepMine',()=>{S.imp=null;renderResult();});
   on('yes',()=>{S.phase='changes';renderResult();const f=app.querySelector('.step');if(f)f.scrollIntoView({behavior:'smooth',block:'center'});});
@@ -732,6 +741,29 @@ function renderResult(){
   on('no',()=>{S.phase='how';renderResult();});
   on('other',()=>{renderHome();postTop();});
   postHeight();
+}
+function explain(q){
+  const re=/(?:AND|NOT)\s+\([^)]*\)|(?:AND|NOT)\s+"[^"]+"|(?:AND|NOT)\s+\S+|-?[a-z_]+:(?:"[^"]+"|\S+)|-?"[^"]+"|\([^)]*\)|\S+/gi;
+  const out=[];let m;
+  while((m=re.exec(q))){const t=m[0];let w;
+    const low=t.toLowerCase();
+    if(/^not\s/i.test(t))w=t.includes(' OR ')?'NOT removes anything with any of these words.':'NOT removes anything with this word.';
+    else if(/^and\s/i.test(t))w=t.includes(' OR ')?'At least one of these must be there.':'AND means this must be there too.';
+    else if(/^-?site:/.test(low))w=low.startsWith('-')?'Leaves out that website.':'Searches only that website.';
+    else if(/^-inurl:/.test(low))w='Skips pages with that in the web address.';
+    else if(/^intitle:/.test(low))w='Only pages with this in the title.';
+    else if(/^filetype:/.test(low))w='Only that type of file.';
+    else if(/^(after|since):/.test(low))w='Only results after this date.';
+    else if(/^from:/.test(low))w='Only posts from that account.';
+    else if(/^min_faves:/.test(low))w='Only posts with at least this many likes.';
+    else if(/^filter:/.test(low))w='Only posts of that kind.';
+    else if(t.startsWith('-'))w='The minus sign removes results with this.';
+    else if(t.startsWith('('))w=t.includes(' OR ')?'OR means any of these will do. Parentheses keep them grouped.':'Grouped together.';
+    else if(t.startsWith('"'))w='Quotes keep these words together, in this exact order.';
+    else if(t==='OR')w='Either side will do.';
+    else w='A search word.';
+    out.push([t,w]);}
+  return out;
 }
 function refreshLive(){const l=document.getElementById('liveq');if(l)l.textContent=query();}
 function openUrl(u){
