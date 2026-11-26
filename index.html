@@ -303,8 +303,8 @@ google:{
     {k:'phrase',label:'Any words that must stay together? (optional)',type:'text',ex:'small business · on sale · top 10 · free trial',tip:PHRASE_TIP},
     {k:'opts',label:'How picky are you?',type:'multi',chips:[{v:'best',l:'Best',q:'best'},{v:'top',l:'Top rated',q:'"top rated"'},{v:'aff',l:'Affordable',q:'affordable'},{v:'yr',l:'This year',q:YEAR}]},
     {k:'price',label:'Price limit? (optional)',type:'text',ex:'100 (just the number)'},
-    {k:'where',label:'Where?',type:'single',chips:[{v:'near',l:'Near me'},{v:'city',l:'In a city'}]},
-    {k:'city',label:'Which city or town?',type:'text',ex:'Denver · Austin TX',showIf:a=>a.where==='city'},
+    {k:'where',label:'Where?',type:'single',chips:[{v:'',l:'Anywhere'},{v:'near',l:'Near me'},{v:'city',l:'In a city'},{v:'state',l:'In a state'}]},
+    {k:'city',label:a=>a.where==='state'?'Which state?':'Which city or town?',type:'text',ex:a=>a.where==='state'?'Texas · Ohio · California':'Denver · Austin TX',showIf:a=>a.where==='city'||a.where==='state'},
     {k:'proof',label:'What proof do you want?',type:'multi',chips:[{v:'rev',l:'Reviews',q:'review'},{v:'test',l:'Tested',q:'tested'},{v:'vs',l:'Comparisons',q:'vs'},{v:'red',l:'Only Reddit opinions'}]},
     {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'used, kids, jobs, enterprise',split:true}
   ],
@@ -316,13 +316,13 @@ google:{
     p.push(...phraseParts(a.phrase));
     if(digits(a.price))p.push([`under $${digits(a.price)}`,'Keeps the results inside your budget.']);
     if(a.where==='near')p.push(['near me','Google uses your location to show nearby options.']);
-    if(a.where==='city'&&a.city)p.push([qt(clean(a.city)),'Locks the search to that city.']);
+    if((a.where==='city'||a.where==='state')&&a.city)p.push([qt(clean(a.city)),a.where==='state'?'Keeps the search to that state.':'Locks the search to that city.']);
     const pr=chipVals(this.steps[6],a.proof).filter(c=>c.q).map(c=>c.q);
     if(pr.length)p.push([orGroup(pr),'Finds pages that test or review, not just sell.']);
     if((a.proof||[]).includes('red'))p.push(['site:reddit.com','Only shows real people talking on Reddit.']);
     p.push(...minusList(a));
     return p;},
-  lazy:a=>clean(a.need)+(a.where==='city'&&a.city?' '+clean(a.city):''),
+  lazy:a=>clean(a.need)+((a.where==='city'||a.where==='state')&&a.city?' '+clean(a.city):''),
   url:q=>google(q),
   how:a=>['Tap <b>Copy</b>.','Go to <b>google.com</b>.','Paste into the search bar and press <b>Enter</b>.','Want newer results? Tap <b>Tools</b> under the search bar and pick <b>Past year</b>.',SAVE_TIP],
   examples:[{label:'CRM software with a free trial',a:{need:'CRM software',phrase:'free trial',opts:['top'],proof:['rev'],ex:'enterprise'}}]
