@@ -141,6 +141,18 @@ code,.q{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .recprev{margin-top:8px;font-size:12.5px;color:var(--soft)}
 .recprev code{display:block;color:#fff;font-size:14px;margin-top:4px;word-break:break-word}
 .go:disabled{opacity:.45;cursor:not-allowed}
+.coachbox{margin-top:10px}
+.cq{background:rgba(242,179,61,.08);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.45}
+.cq b{display:block;margin-bottom:6px}
+.cq label{display:flex;gap:8px;align-items:flex-start;margin:6px 0;cursor:pointer}
+.cq input{accent-color:#F2B33D;width:18px;height:18px;margin-top:1px;flex-shrink:0}
+.cq span{color:var(--soft);font-size:13px}
+.cq .sm{font-size:12px;color:var(--soft)}
+.exsug{margin-top:4px}
+.exs code{color:var(--gold);background:rgba(242,179,61,.12);border-radius:6px;padding:1px 6px;margin-right:4px}
+.finalq{width:100%;background:rgba(0,0,0,.3);border:2px solid var(--gold);border-radius:14px;padding:14px;font-size:16px;color:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.5;resize:vertical;outline:none}
+.bh{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);margin:4px 0 4px}
+.note a{color:var(--gold)}
 .tipline{background:rgba(242,179,61,.1);border-radius:12px;padding:10px 12px;font-size:14px;margin:-6px 0 16px;line-height:1.45}
 .warnline{margin:-8px 0 14px;color:var(--gold)}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);background:var(--gold);color:var(--em2);font-weight:700;padding:10px 18px;border-radius:999px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
@@ -223,12 +235,22 @@ function daysAgo(n){const d=new Date();d.setDate(d.getDate()-n);return d.toISOSt
 function chipVals(step,vals){return (vals||[]).map(v=>step.chips.find(c=>c.v===v)).filter(Boolean);}
 const isEmpty=v=>v===undefined||v===null||(Array.isArray(v)?v.length===0:String(v).trim()==='');
 const YEAR=String(new Date().getFullYear());
-const PHRASE_TIP='Use quotes when words lose their meaning apart. Leave your main topic without quotes so Google can find close matches. Names work great in quotes, like "LeBron James."';
+const PHRASE_TIP='Anything you type here gets quotes, so the words stay together. Great for names ("LeBron James") and phrases that lose their meaning apart ("free trial").';
 const SPLIT_TIP='Separate words with spaces or commas. Use quotes to keep words together, like "cold email."';
 function phraseParts(s){return list(s).map(w=>w.includes(' ')?[`"${w}"`,'Quotes lock these words together, so Google won’t split them up. Narrower, more exact results.']:[w,'One word works on its own. Quotes are for two or more words.']);}
 function minusParts(s,why){return words(s).map(w=>['-'+qt(w),why||'The minus sign removes results with this word.']);}
-function aiWords(a){return ['ai0','ai1'].map(k=>a[k]).filter(Boolean);}
-function aiParts(a){return aiWords(a).map(w=>[w,'Extra words from Mr. Paul’s question that narrow it down.']);}
+function aiGroups(a){return ['ai0','ai1'].filter(k=>!isEmpty(a[k])).map(k=>({g:Array.isArray(a[k])?a[k]:[a[k]],mode:a[k+'_m']||'or'}));}
+function aiWords(a){return aiGroups(a).map(x=>x.g[0]);}
+function aiParts(a){const out=[];aiGroups(a).forEach(({g,mode})=>{
+  if(g.length>1&&mode!=='and')out.push([`(${g.map(qt).join(' OR ')})`,'You picked more than one. OR plus parentheses means any one of them counts.']);
+  else g.forEach(w=>out.push([g.length>1?qt(w):w,g.length>1?'You chose “must have all,” so this has to be there too.':'Extra words from Mr. Paul’s question that narrow it down.']));});return out;}
+function topicPart(a,k,eng){const t=clean(a[k]);if(!t)return [];
+  if(a[k+'_x']==='exact'&&t.includes(' '))return [[`"${t}"`,`In quotes: only pages with this exact phrase. Fewer, tighter results.${eng==='Google'?' Ads and map listings may still show similar words.':''}`]];
+  return [[t,`No quotes: ${eng} also finds close matches, so you get more results.`]];}
+function exWords(a){const out=[];[...words(a.ex),...(a.exs||[])].forEach(w=>{if(!out.some(x=>x.toLowerCase()===w.toLowerCase()))out.push(w);});return out;}
+function minusList(a,why){return exWords(a).map(w=>['-'+qt(w),why||'The minus sign removes results with this word.']);}
+const VENDORISH=/software|vendor|service|platform|tool|compan|agency|saas|provider|firm|consult/i;
+function builtinExcludes(topic){return VENDORISH.test(topic||'')?[{w:'jobs',why:'Searches like this often pull up job listings.',strong:true}]:[];}
 const SAVE_TIP='After you add filters, bookmark the results page (Ctrl+D on Windows, Cmd+D on Mac). The link saves your search and filters, so you can run it again anytime with one click.';
 
 /* ---------- Built-in suggestion lists ---------- */
@@ -277,11 +299,11 @@ google:{
   name:'Google',ps:'Find anything',ic:'🛒',aiAfter:'need',
   tip:'Google reads every symbol. Quotes keep words together, OR widens, a minus sign cuts words out.',
   steps:[
-    {k:'need',label:'What are you looking for?',type:'text',ex:'CRM software · new running shoes · MBA programs · museums',req:true},
+    {k:'need',coach:'exact',label:'What are you looking for?',type:'text',ex:'CRM software · new running shoes · MBA programs · museums',req:true},
     {k:'phrase',label:'Any words that must stay together? (optional)',type:'text',ex:'small business · on sale · top 10 · free trial',tip:PHRASE_TIP},
     {k:'opts',label:'How picky are you?',type:'multi',chips:[{v:'best',l:'Best',q:'best'},{v:'top',l:'Top rated',q:'"top rated"'},{v:'aff',l:'Affordable',q:'affordable'},{v:'yr',l:'This year',q:YEAR}]},
     {k:'price',label:'Price limit? (optional)',type:'text',ex:'100 (just the number)'},
-    {k:'where',label:'Where?',type:'single',chips:[{v:'',l:'Skip'},{v:'near',l:'Near me'},{v:'city',l:'In a city'}]},
+    {k:'where',label:'Where?',type:'single',chips:[{v:'near',l:'Near me'},{v:'city',l:'In a city'}]},
     {k:'city',label:'Which city or town?',type:'text',ex:'Denver · Austin TX',showIf:a=>a.where==='city'},
     {k:'proof',label:'What proof do you want?',type:'multi',chips:[{v:'rev',l:'Reviews',q:'review'},{v:'test',l:'Tested',q:'tested'},{v:'vs',l:'Comparisons',q:'vs'},{v:'red',l:'Only Reddit opinions'}]},
     {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'used, kids, jobs, enterprise',split:true}
@@ -289,7 +311,7 @@ google:{
   build(a){const p=[];
     const o=chipVals(this.steps[2],a.opts).map(c=>c.q);
     if(o.length)p.push([orGroup(o),o.length>1?'OR means any of these will do. Parentheses keep them grouped.':'Goes in front, the way people type it. Pulls the stronger pages to the top.']);
-    if(a.need)p.push([clean(a.need),'Your main words. Without quotes, Google also finds close matches (like “CRM platform”). Add quotes only when you need this exact wording.']);
+    p.push(...topicPart(a,'need','Google'));
     p.push(...aiParts(a));
     p.push(...phraseParts(a.phrase));
     if(digits(a.price))p.push([`under $${digits(a.price)}`,'Keeps the results inside your budget.']);
@@ -298,7 +320,7 @@ google:{
     const pr=chipVals(this.steps[6],a.proof).filter(c=>c.q).map(c=>c.q);
     if(pr.length)p.push([orGroup(pr),'Finds pages that test or review, not just sell.']);
     if((a.proof||[]).includes('red'))p.push(['site:reddit.com','Only shows real people talking on Reddit.']);
-    p.push(...minusParts(a.ex));
+    p.push(...minusList(a));
     return p;},
   lazy:a=>clean(a.need)+(a.where==='city'&&a.city?' '+clean(a.city):''),
   url:q=>google(q),
@@ -306,10 +328,10 @@ google:{
   examples:[{label:'CRM software with a free trial',a:{need:'CRM software',phrase:'free trial',opts:['top'],proof:['rev'],ex:'enterprise'}}]
 },
 youtube:{
-  name:'YouTube',ps:'Videos',ic:'🎬',aiAfter:'topic',
+  name:'YouTube',ps:'Videos',ic:'🎬',aiAfter:'topic',aiSingle:true,
   tip:'YouTube works best with the type of video in your search: how to, review, explained. Then use its Filters.',
   steps:[
-    {k:'topic',label:'What do you want to watch or learn?',type:'text',ex:'set up a CRM · write a business plan · change a tire · sourdough bread',req:true},
+    {k:'topic',coach:'exact',label:'What do you want to watch or learn?',type:'text',ex:'set up a CRM · write a business plan · change a tire · sourdough bread',req:true},
     {k:'phrase',label:'Any words that must stay together? (optional)',type:'text',ex:'project management · pivot tables · flat tire · meal prep',tip:PHRASE_TIP},
     {k:'type',label:'What kind of video?',type:'single',chips:[{v:'',l:'Any'},{v:'how to',l:'How to'},{v:'tutorial',l:'Tutorial'},{v:'review',l:'Review'},{v:'explained',l:'Explained'},{v:'for beginners',l:'For beginners'},{v:'vs',l:'Comparison'},{v:'step by step',l:'Step by step'}]},
     {k:'yr',label:'Only recent videos?',type:'single',chips:[{v:'',l:'Any time'},{v:'y',l:'This year'}]},
@@ -317,24 +339,24 @@ youtube:{
   ],
   build(a){const p=[];
     if(a.type==='how to')p.push(['how to','“How to” goes in front, just like video titles.']);
-    if(a.topic)p.push([clean(a.topic),'Your main topic.']);
+    p.push(...topicPart(a,'topic','YouTube'));
     p.push(...aiParts(a));
     if(a.type&&a.type!=='how to')p.push([a.type,a.type==='vs'?'Finds side-by-side comparison videos.':'Goes after the topic, the way creators title their videos.']);
     p.push(...phraseParts(a.phrase));
     if(a.yr)p.push([YEAR,'Creators put the year in titles, so this finds newer videos.']);
-    p.push(...minusParts(a.ex,'Tries to remove videos with this word. YouTube sometimes ignores this.'));
+    p.push(...minusList(a,'Tries to remove videos with this word. YouTube sometimes ignores this.'));
     return p;},
   lazy:a=>clean(a.topic),
   url:q=>'https://www.youtube.com/results?search_query='+enc(q),
   how:a=>['Tap <b>Copy</b>.','Open <b>YouTube</b> and tap the search icon.','Paste and press <b>Enter</b>.','Tap <b>Filters</b> to narrow it: <b>Upload date</b> for newer videos, <b>Duration</b> for longer ones, or <b>Type: Video</b> to skip Shorts.',SAVE_TIP],
-  extra:(a,q)=>words(a.ex).length?{t:'Strict version (paste into Google)',d:'YouTube sometimes ignores the minus sign, and its AI answer box always does. Google won’t, so this backup finds only YouTube videos without those words.',q:`site:youtube.com ${q}`}:null,
+  extra:(a,q)=>exWords(a).length?{t:'Strict version (paste into Google)',d:'YouTube sometimes ignores the minus sign, and its AI answer box always does. Google won’t, so this backup finds only YouTube videos without those words.',q:`site:youtube.com ${q}`}:null,
   examples:[{label:'Learn to change a tire',a:{topic:'change a tire',phrase:'',type:'how to',yr:'',ex:'shorts, prank'}}]
 },
 reddit:{
   name:'Reddit',ps:'Real opinions',ic:'💬',aiAfter:'topic',tryAgain:{k:'sub',l:'Try another subreddit'},
   tip:'Reddit’s own search is weak. Google finds Reddit threads better, so we search Reddit through Google.',
   steps:[
-    {k:'topic',label:'What do you want real opinions on?',type:'text',ex:'crm software · project management tools · air fryer · Honda CR-V',req:true},
+    {k:'topic',coach:'exact',label:'What do you want real opinions on?',type:'text',ex:'crm software · project management tools · air fryer · Honda CR-V',req:true},
     {k:'want',label:'What do you want to hear?',type:'multi',chips:[{v:'rec',l:'Recommendations',q:'recommendations'},{v:'worth',l:'Is it worth it?',q:'"worth it"'},{v:'reg',l:'Regrets & problems',q:'regret'},{v:'alt',l:'Alternatives',q:'alternatives'}]},
     {k:'sub',label:'Which community? (optional)',type:'sub',ex:'smallbusiness · BuyItForLife (name only, no r/)'},
     {k:'when',label:'How recent?',type:'single',chips:[{v:'',l:'Any time'},{v:'365',l:'Past year'},{v:'730',l:'Past 2 years'}]},
@@ -342,12 +364,12 @@ reddit:{
   ],
   build(a){const p=[];const s=normSub(a.sub);
     p.push([s?`site:reddit.com/r/${s}`:'site:reddit.com',s?'Searches only that one Reddit community.':'Only shows results from Reddit.']);
-    if(a.topic)p.push([clean(a.topic),'Your main topic.']);
+    p.push(...topicPart(a,'topic','Google'));
     p.push(...aiParts(a));
     const w=chipVals(this.steps[1],a.want).map(c=>c.q);
     if(w.length)p.push([orGroup(w),'Finds the threads where people share what they really think.']);
     if(a.when)p.push([`after:${daysAgo(+a.when)}`,'Only threads posted after this date. Good for software, prices and anything that changes.']);
-    p.push(...minusParts(a.ex,'Removes threads with this word.'));
+    p.push(...minusList(a,'Removes threads with this word.'));
     return p;},
   notes(a){const s=normSub(a.sub).toLowerCase();const t=clean(a.topic).toLowerCase().replace(/\s/g,'');
     return s&&s.length>3&&t.includes(s)?[`You’re already inside r/${normSub(a.sub)}, so you can drop those words from your topic for more results.`]:[];},
@@ -360,7 +382,7 @@ site:{
   name:'A Website',ps:'Search one site',ic:'🌐',aiAfter:'topic',tryAgain:{k:'site',l:'Try another website'},
   tip:'Lots of websites have weak search boxes. Google’s site: command searches just one website, and does it better.',
   steps:[
-    {k:'topic',label:'What are you looking for?',type:'text',ex:'iphone reviews · small business loans · flu symptoms · CRM software',req:true},
+    {k:'topic',coach:'exact',label:'What are you looking for?',type:'text',ex:'iphone reviews · small business loans · flu symptoms · CRM software',req:true},
     {k:'site',label:'Which website?',type:'site',ex:'hbr.org · sba.gov · consumerreports.org · mayoclinic.org',req:true},
     {k:'phrase',label:'Any words that must stay together? (optional)',type:'text',ex:'business plan · side effects · battery life',tip:PHRASE_TIP},
     {k:'kind',label:'What kind of page?',type:'single',chips:[{v:'',l:'Any page'},{v:'pdf',l:'PDFs only'},{v:'title',l:'Topic in the title'},{v:'ppt',l:'Slide decks'}]},
@@ -369,12 +391,12 @@ site:{
   build(a){const p=[];const {d}=normSite(a.site);
     if(d)p.push([`site:${d}`,'Searches only this one website.']);
     if(a.kind==='title'&&a.topic)p.push([`intitle:${qt(clean(a.topic))}`,'Only pages with your topic in the page title.']);
-    else if(a.topic)p.push([clean(a.topic),'Your main topic.']);
+    else p.push(...topicPart(a,'topic','Google'));
     p.push(...aiParts(a));
     p.push(...phraseParts(a.phrase));
     if(a.kind==='pdf')p.push(['filetype:pdf','Only PDF files: guides, reports, manuals.']);
     if(a.kind==='ppt')p.push(['filetype:pptx','Only slide decks.']);
-    p.push(...minusParts(a.ex,'Removes pages with this word.'));
+    p.push(...minusList(a,'Removes pages with this word.'));
     return p;},
   lazy:a=>clean(a.topic)+' '+normSite(a.site).d,
   url:q=>google(q),
@@ -385,7 +407,7 @@ facebook:{
   name:'Facebook',ps:'Groups & pages',ic:'👥',aiAfter:'topic',
   tip:'Facebook’s own search box ignores AND, OR and NOT, so we search Facebook through Google. Marketplace is the exception.',
   steps:[
-    {k:'topic',label:'What are you looking for?',type:'text',ex:'small business owners · real estate investors · hiking club · dog training',req:true},
+    {k:'topic',coach:'exact',label:'What are you looking for?',type:'text',ex:'small business owners · real estate investors · hiking club · dog training',req:true},
     {k:'where',label:'Where on Facebook?',type:'single',chips:[{v:'groups',l:'Groups'},{v:'pages',l:'Pages'},{v:'mkt',l:'Marketplace'},{v:'any',l:'Anywhere'}],req:true},
     {k:'city',label:'City, state or region? (optional)',type:'text',ex:'Denver · Texas · Pacific Northwest',showIf:a=>a.where!=='mkt'},
     {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'kids, online, free',split:true,showIf:a=>a.where!=='mkt'}
@@ -398,10 +420,10 @@ facebook:{
     if(a.where==='groups')p.push(['site:facebook.com/groups','Only Facebook Groups.']);
     else if(a.where==='pages')p.push(['site:facebook.com -inurl:groups -inurl:events -inurl:marketplace','Facebook only, skipping group, event and Marketplace pages, so you see business and brand Pages.']);
     else p.push(['site:facebook.com','Anything on Facebook.']);
-    if(a.topic)p.push([clean(a.topic),'Your main topic.']);
+    p.push(...topicPart(a,'topic','Google'));
     p.push(...aiParts(a));
     if(a.city)p.push([qt(clean(a.city)),'Keeps it to that city, state or region.']);
-    p.push(...minusParts(a.ex,'Removes results with this word.'));
+    p.push(...minusList(a,'Removes results with this word.'));
     return p;},
   lazy:a=>clean(a.topic)+' facebook'+(a.city?' '+clean(a.city):''),
   url:(q,a)=>a.where==='mkt'?'https://www.facebook.com/marketplace/search/?query='+enc(q):google(q),
@@ -415,7 +437,7 @@ linkedin:{
   tip:'LinkedIn speaks real Boolean: AND, OR and NOT, in capital letters, plus quotes and parentheses. Parentheses work like math: LinkedIn reads what’s inside first.',
   steps:[
     {k:'type',label:'What are you looking for?',type:'single',chips:[{v:'people',l:'People'},{v:'jobs',l:'Jobs'},{v:'companies',l:'Companies'},{v:'posts',l:'Posts'}],req:true},
-    {k:'titles',type:'text',req:true,
+    {k:'titles',coach:'li',type:'text',req:true,
       label:a=>({companies:'Company type or industry (separate with commas)',posts:'Topic (separate options with commas)'}[a.type]||'Job titles (separate with commas)'),
       ex:a=>({people:'VP Marketing, Head of Sales · registered nurse',jobs:'marketing manager · project manager',companies:'SaaS, cybersecurity · physical therapy',posts:'AI in sales · remote work · leadership'}[a.type]||'VP Marketing, Head of Sales')},
     {k:'must',type:'text',split:true,label:'Must-have words? (optional)',
@@ -427,12 +449,12 @@ linkedin:{
   build(a){const p=[];
     const t=list(a.titles).map(qt);
     if(t.length)p.push([orGroup(t),t.length>1?'OR finds any of these. Parentheses keep them together as one choice.':'Your main search words. Quotes keep a title together.']);
-    aiWords(a).forEach(w=>p.push(['AND '+qt(w),'From Mr. Paul’s quick question. AND means it must be there too.']));
+    aiGroups(a).forEach(({g,mode})=>{if(g.length>1&&mode!=='and')p.push([`AND (${g.map(qt).join(' OR ')})`,'At least one of your picks must be there. Parentheses group them.']);else g.forEach(w=>p.push(['AND '+qt(w),'AND means this must be there too.']));});
     const m=words(a.must).map(qt);
     if(m.length===1)p.push(['AND '+m[0],'AND means this word must be there too.']);
     else if(m.length>1){ if((a.mode||'any')==='all')m.forEach(w=>p.push(['AND '+w,'All of these must be there.']));
       else p.push([`AND (${m.join(' OR ')})`,'At least one of these must be there. Parentheses group them.']); }
-    const x=words(a.ex).map(qt);
+    const x=exWords(a).map(qt);
     if(x.length)p.push([x.length>1?`NOT (${x.join(' OR ')})`:'NOT '+x[0],x.length>1?'NOT removes anything with any of these words.':'NOT removes anything with this word.']);
     return p;},
   lazy:a=>list(a.titles)[0]||'',
@@ -448,12 +470,12 @@ linkedin:{
   examples:[{label:'Find a remote marketing job',a:{type:'jobs',titles:'marketing manager, marketing director',must:'remote',ex:'intern'}}]
 },
 amazon:{
-  name:'Amazon',ps:'Shop smarter',ic:'📦',aiAfter:'prod',
+  name:'Amazon',ps:'Shop smarter',ic:'📦',aiAfter:'prod',aiSingle:true,
   tip:'Amazon mostly ignores quotes and minus signs. Specific words and its filters do the work.',
   steps:[
-    {k:'prod',label:'What product?',type:'text',ex:'office chair · cordless drill · jeans · blender',req:true},
+    {k:'prod',coach:'specific',label:'What product?',type:'text',ex:'office chair · cordless drill · jeans · blender',req:true},
     {k:'must',label:'Must-have features (optional)',type:'text',ex:'ergonomic, mesh · 20V brushless · stretch',split:true},
-    {k:'who',label:'Who is it for?',type:'single',chips:[{v:'',l:'Skip'},{v:"men's",l:"Men's"},{v:"women's",l:"Women's"},{v:'kids',l:'Kids'}]},
+    {k:'who',label:'Who is it for?',type:'single',chips:[{v:"men's",l:"Men's"},{v:"women's",l:"Women's"},{v:'kids',l:'Kids'},{v:'unisex',l:'Unisex'}]},
     {k:'price',label:'Price limit? (optional)',type:'text',ex:'100 (just the number)'},
     {k:'stars',label:'Star rating',type:'single',def:'4',chips:[{v:'4',l:'4 stars & up'},{v:'',l:'Any'}]}
   ],
@@ -473,7 +495,7 @@ x:{
   name:'X',ps:'Posts & news',ic:'𝕏',aiAfter:'topic',loginNote:'X requires you to be logged in to search.',
   tip:'X has the strongest search of any social site: from:, min_faves:, since: and more.',
   steps:[
-    {k:'topic',label:'What topic?',type:'text',ex:'AI news · product launches · Super Bowl ads · solar eclipse',req:true},
+    {k:'topic',coach:'exact',label:'What topic?',type:'text',ex:'AI news · product launches · Super Bowl ads · solar eclipse',req:true},
     {k:'phrase',label:'Any words that must stay together? (optional)',type:'text',ex:'LeBron James · electric car · Super Bowl',tip:PHRASE_TIP},
     {k:'from',label:'From one account? (optional)',type:'text',ex:'NASA · Forbes · NWS (no @ needed)'},
     {k:'pop',label:'How popular?',type:'single',chips:[{v:'',l:'Any'},{v:'100',l:'100+ likes'},{v:'1000',l:'1,000+ likes'},{v:'10000',l:'10,000+ likes'}]},
@@ -482,7 +504,7 @@ x:{
     {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'giveaway, crypto',split:true}
   ],
   build(a){const p=[];
-    if(a.topic)p.push([clean(a.topic),'Your main topic.']);
+    p.push(...topicPart(a,'topic','X'));
     p.push(...aiParts(a));
     p.push(...phraseParts(a.phrase));
     if(a.from)p.push([`from:${clean(a.from).replace(/^@/,'').replace(/\s/g,'')}`,'Only posts from that account.']);
@@ -491,7 +513,7 @@ x:{
     if(a.media==='media')p.push(['filter:media','Only posts with photos or videos.']);
     if(a.media==='links')p.push(['filter:links','Only posts with links.']);
     if(a.media==='news')p.push(['filter:news','Only posts linking to news stories.']);
-    p.push(...minusParts(a.ex,'Removes posts with this word.'));
+    p.push(...minusList(a,'Removes posts with this word.'));
     return p;},
   lazy:a=>clean(a.topic),
   url:q=>'https://x.com/search?q='+enc(q)+'&src=typed_query',
@@ -502,7 +524,7 @@ const HOME_H=Math.max(0,parseInt(new URLSearchParams(location.search).get('h'),1
 const ORDER=['google','youtube','reddit','site','facebook','linkedin','amazon','x'];
 
 /* ---------- State ---------- */
-const fresh=()=>({view:'home',pid:null,a:{},cur:0,phase:null,fin:false,ai:{status:'idle',topic:'',qs:[]},override:null,imp:null,impFor:'',tried:false,aiDown:false,picks:[]});
+const fresh=()=>({view:'home',pid:null,a:{},cur:0,phase:null,fin:false,ai:{status:'idle',topic:'',qs:[],exclude:[]},override:null});
 let S=fresh();
 const app=document.getElementById('app');
 const val=(st,k)=>{const f=st[k];return typeof f==='function'?f(S.a):f;};
@@ -512,7 +534,7 @@ function visible(){
   if(i<0)return base;
   let extra=[];
   if(S.ai.status==='loading')extra=[{k:'_ai',type:'loading',label:'Mr. Paul is thinking of a quick question…'}];
-  else if(S.ai.status==='done')extra=S.ai.qs.map((q,n)=>({k:'ai'+n,label:q.q,type:'single',ai:true,chips:[...q.options.map(o=>({v:o,l:o})),{v:'',l:'Skip'}]}));
+  else if(S.ai.status==='done')extra=S.ai.qs.map((q,n)=>({k:'ai'+n,label:q.q,type:p.aiSingle?'single':'multi',ai:true,chips:q.options.map(o=>({v:o,l:o}))}));
   return [...base.slice(0,i+1),...extra,...base.slice(i+1)];
 }
 const done=()=>S.fin||S.cur>=visible().length;
@@ -535,13 +557,15 @@ async function callAI(body){
   finally{clearTimeout(t);}
 }
 function fetchFollowups(topic){
-  const pid=S.pid;S.ai={status:'loading',topic,qs:[]};delete S.a.ai0;delete S.a.ai1;
+  const pid=S.pid;S.ai={status:'loading',topic,qs:[],exclude:[]};delete S.a.ai0;delete S.a.ai1;delete S.a.ai0_m;delete S.a.ai1_m;delete S.a.exs;
   callAI({mode:'followup',platform:P[pid].name,topic}).then(d=>{
     if(S.pid!==pid||S.ai.topic!==topic||S.ai.status!=='loading')return;
     const qs=(d&&Array.isArray(d.questions)?d.questions:[]).filter(q=>q&&q.q&&Array.isArray(q.options)&&q.options.length>=2).slice(0,2)
       .map(q=>({q:String(q.q).slice(0,80),options:q.options.slice(0,6).map(o=>String(o).slice(0,40))}));
-    S.ai={status:qs.length?'done':'none',topic,qs};renderModule();
-  }).catch(()=>{if(S.pid===pid&&S.ai.topic===topic&&S.ai.status==='loading'){S.ai={status:'none',topic,qs:[]};renderModule();}});
+    const exclude=(d&&Array.isArray(d.exclude)?d.exclude:[]).filter(e=>e&&e.w).slice(0,4).map(e=>({w:String(e.w).slice(0,40),why:String(e.why||'').slice(0,140),strong:!!e.strong}));
+    S.ai={status:qs.length?'done':'none',topic,qs,exclude};
+    renderModule();
+  }).catch(()=>{if(S.pid===pid&&S.ai.topic===topic&&S.ai.status==='loading'){S.ai={status:'none',topic,qs:[],exclude:[]};renderModule();}});
 }
 
 /* ---------- Home ---------- */
@@ -609,6 +633,8 @@ function stepHTML(st,i,active){
   if(st.type==='text'){
     field=`<input type="text" data-k="${st.k}" value="${esc(v||'')}" autocomplete="off" aria-label="${esc(label)}">`;
     if(st.split)field+=`<div class="hint">${SPLIT_TIP}</div><div class="wprev" data-prev="${st.k}">${chipsPreview(st)}</div>`;
+    if(st.split&&st.k==='ex')field+=exSuggestHTML();
+    if(st.coach)field+=`<div class="coachbox" data-coach="${st.k}">${coachHTML(st)}</div>`;
     if(st.tip)field+=`<div class="hint">${esc(st.tip)}</div>`;
   } else if(st.type==='sub'||st.type==='site'){
     const isSub=st.type==='sub';
@@ -624,17 +650,40 @@ function stepHTML(st,i,active){
   } else {
     const dv=st.def!==undefined?st.def:(st.req?undefined:'');
     field=`<div class="chips">${st.chips.map(c=>{const on=st.type==='multi'?(v||[]).includes(c.v):(v??dv)===c.v;return `<button class="chip ${on?'on':''}" data-k="${st.k}" data-v="${esc(c.v)}" data-t="${st.type}">${esc(c.l)}</button>`;}).join('')}</div>`;
+    if(st.type==='multi'&&(v||[]).length>1){
+      if(st.ai){const m=S.a[st.k+'_m']||'or';const and=S.pid==='linkedin'?'AND':'spaces';
+        field+=`<div class="coachbox"><div class="cq"><b>✦ You picked ${v.length}. Should any one count, or all of them?</b>
+          <label><input type="radio" name="m_${st.k}" data-mode="${st.k}" value="or" ${m==='or'?'checked':''}> Any one is fine <span>(joined with OR in parentheses: more results)</span></label>
+          <label><input type="radio" name="m_${st.k}" data-mode="${st.k}" value="and" ${m==='and'?'checked':''}> Must have all of them <span>(${S.pid==='linkedin'?'joined with AND':'each word must appear'}: fewer results)</span></label></div></div>`;}
+      else field+=`<div class="coachbox"><div class="cq"><b>✦ You picked ${v.length}.</b> I joined them with OR in parentheses, so any one of them counts.</div></div>`;
+    }
+    if(st.k==='opts'&&(v||[]).length)field+=`<div class="hint">These go in front of your words, the way people type it.</div>`;
   }
   return `<div class="step${st.ai?' aistep':''}" data-i="${i}">
     <div class="sh"><span class="n">${st.ai?'✦':i+1}</span>${esc(label)}</div>
-    ${st.ai?'<div class="ex">Mr. Paul’s quick question. Pick one, or skip.</div>':ex?`<div class="ex">Example: <b>${esc(ex)}</b></div>`:'<div class="ex"></div>'}
+    ${st.ai?`<div class="ex">Mr. Paul’s quick question. ${st.type==='multi'?'Pick one or more, or skip.':'Pick one, or skip.'}</div>`:ex?`<div class="ex">Example: <b>${esc(ex)}</b></div>`:'<div class="ex"></div>'}
     <div class="field">${field}</div>
     <div class="warn" id="warn${i}">Please answer this one to keep going.</div>
-    ${active?`<div class="sa">${i>0?`<button class="ghost back" data-back="${i}">← Back</button>`:''}<button class="go" data-next="${i}">Next →</button>${st.req?'':`<button class="ghost" data-next="${i}">Skip</button>`}<button class="ghost donebtn" data-done="${i}" ${reqDone()&&i<visible().length-1?'':'style="display:none"'}>Done, show my search</button></div>`:''}
+    ${active?`<div class="sa">${i>0?`<button class="ghost back" data-back="${i}">← Back</button>`:''}<button class="go" data-next="${i}">Next →</button>${st.req||st.type==='sub'||(st.chips&&st.chips.some(c=>c.v===''))?'':`<button class="ghost" data-next="${i}">Skip</button>`}<button class="ghost donebtn" data-done="${i}" ${reqDone()&&i<visible().length-1?'':'style="display:none"'}>Done, show my search</button></div>`:''}
   </div>`;
 }
+function coachHTML(st){const k=st.k,t=clean(S.a[k]);
+  if(st.coach==='exact'){
+    if(!t||!t.includes(' ')||(S.pid==='facebook'&&S.a.where==='mkt'))return '';
+    const x=S.a[k+'_x']||'';const google=S.pid!=='youtube'&&S.pid!=='x';
+    return `<div class="cq"><b>✦ Exact phrase, or close matches too?</b>
+      <label><input type="radio" name="x_${k}" data-cx="${k}" value="" ${x?'':'checked'}> Close matches too <span>(more results, including similar wording)</span></label>
+      <label><input type="radio" name="x_${k}" data-cx="${k}" value="exact" ${x?'checked':''}> Exactly “${esc(t)}” <span>(quotes: fewer, tighter results${google?'. Ads and map listings may still show similar words':''})</span></label></div>`;}
+  if(st.coach==='li')return t?`<div class="cq"><b>✦ How LinkedIn reads this:</b> each title goes in quotes so it stays together${list(t).length>1?', and they’re joined with OR, so any of them counts':''}.</div>`:'';
+  if(st.coach==='specific')return t?`<div class="cq"><b>✦ Amazon doesn’t read quotes or minus signs.</b> Be specific instead: add size, power, material or style. Mr. Paul will help on the next step.</div>`:'';
+  return '';}
+function exSuggestHTML(){const list=(S.ai.exclude&&S.ai.exclude.length?S.ai.exclude:builtinExcludes(S.a[P[S.pid].aiAfter]));
+  if(!list.length)return '';if(S.a.exs===undefined)S.a.exs=list.filter(e=>e.strong).map(e=>e.w);const sel=S.a.exs||[];const word=S.pid==='linkedin'?'NOT ':'-';
+  return `<div class="coachbox"><div class="cq"><b>✦ Suggested for your topic</b> <span class="sm">(tap to add or remove)</span>
+    <div class="exsug">${list.map(e=>`<label class="exs"><input type="checkbox" data-exs="${esc(e.w)}" ${sel.includes(e.w)?'checked':''}><span><code>${word}${esc(qt(e.w))}</code> ${esc(e.why||'')}</span></label>`).join('')}</div>
+    ${S.pid==='youtube'?'<span class="sm">YouTube sometimes ignores minus words, so your result includes a strict Google version too.</span>':''}</div></div>`;}
 function fixNote(v){const {d,fixed}=normSite(v);return fixed?`We used <b>${esc(d)}</b>. Change it if that’s not right.`:'Type it like <b>hbr.org</b>. No https:// needed.';}
-function changed(){S.override=null;S.imp=null;S.tried=false;S.picks=[];S.accepted=false;}
+function changed(){S.override=null;}
 function wireModule(){
   document.getElementById('restart').onclick=()=>{openModule(S.pid);};
   document.getElementById('close').onclick=()=>{renderHome();postTop();};
@@ -644,6 +693,7 @@ function wireModule(){
     inp.oninput=()=>{S.a[inp.dataset.k]=inp.value;changed();
       const st=P[S.pid].steps.find(s=>s.k===inp.dataset.k);
       const pv=app.querySelector(`[data-prev="${inp.dataset.k}"]`); if(pv&&st)pv.innerHTML=chipsPreview(st);
+      const cb=app.querySelector(`[data-coach="${inp.dataset.k}"]`); if(cb&&st){cb.innerHTML=coachHTML(st);postHeight();}
       const fn=app.querySelector(`[data-fixnote="site"]`); if(fn&&inp.dataset.k==='site')fn.innerHTML=fixNote(inp.value);
       if(st&&(st.type==='sub'||st.type==='site'))app.querySelectorAll(`[data-pick="${st.k}"]`).forEach(c=>{
         const cur=st.type==='sub'?normSub(inp.value).toLowerCase():normSite(inp.value).d;c.classList.toggle('on',st.type==='sub'?cur===c.dataset.v.toLowerCase():(cur&&cur===c.dataset.v));});
@@ -689,78 +739,59 @@ function refresh(){
 }
 
 /* ---------- Result ---------- */
+function partsHTML(){return (S.override?explain(S.override):P[S.pid].build(S.a)).map(x=>`<li><code>${esc(x[0])}</code><span>${esc(x[1])}</span></li>`).join('');}
 function renderResult(){
   const p=P[S.pid],q=query(),lazy=clean(p.lazy(S.a));
-  const parts=S.override?explain(S.override):p.build(S.a);
   const box=document.getElementById('result');
   if(!q){box.innerHTML='';return;}
   const extra=p.extra?p.extra(S.a,q):null;
   const notes=p.notes?p.notes(S.a):[];
   const anim=box.dataset.shown?' noanim':''; box.dataset.shown='1';
-  const imp=S.imp;
   const same=!S.override&&clean(q).toLowerCase()===lazy.toLowerCase();
-  const canMore=S.cur<visible().length-1||(S.fin&&S.cur<visible().length);
   box.innerHTML=`<div class="result${anim}">
-    <div class="rh">Here’s your search</div>
-    <div class="qbox q">${esc(q)}</div>
-    <div class="row"><button class="go" id="copy">Copy</button><button class="ghost" id="run">Run This Search ↗</button>${p.tryAgain?`<button class="ghost" id="again">${p.tryAgain.l}</button>`:''}</div>
+    <div class="rh">Here’s your final search</div>
+    <label class="editl" for="finalQ">Looks right? Approve it. Want to tweak it? Edit it right here.</label>
+    <textarea id="finalQ" class="finalq" rows="2" spellcheck="false">${esc(q)}</textarea>
+<p class="note" id="editNote" style="margin:6px 0 0;${S.override?'':'display:none'}">✎ You edited this search. <a href="#" id="resetQ">Undo my edits</a></p>
+    <div class="row"><button class="go" id="approve">✓ Approve &amp; Copy</button><button class="ghost" id="run">Run This Search ↗</button>${p.tryAgain?`<button class="ghost" id="again">${p.tryAgain.l}</button>`:''}</div>
     ${p.loginNote?`<p class="note warnline">${p.loginNote}</p>`:''}
-    <ul class="parts">${parts.map(x=>`<li><code>${esc(x[0])}</code><span>${esc(x[1])}</span></li>`).join('')}</ul>
+    ${S.phase==='how'?`<div class="how"><h4>✓ Copied! Here’s how to use it on ${esc(p.name)}</h4><ol>${p.how(S.a).map(l=>`<li>${l}</li>`).join('')}</ol>
+      <div class="row"><button class="go" id="copy2">Copy again</button><button class="ghost" id="other">Search another platform</button></div>
+      <p class="note">On a computer, Run This Search opens a small window on top of this page. Close it to come right back here.</p></div>`:''}
+    <h4 class="bh">What each piece does</h4>
+    <ul class="parts" id="partsList">${partsHTML()}</ul>
     ${notes.map(n=>`<p class="tipline">💡 ${esc(n)}</p>`).join('')}
-    <div class="better">
-      ${S.override&&S.accepted?`<span class="note okline">✓ Mr. Paul’s recommendations are in your After search. Try it!</span><button class="ghost" id="undoImp">Undo</button>`
-        :!imp||S.aiDown||imp.status==='fail'||imp.status==='kept'?''
-        :imp.status==='loading'?`<div class="note">✦ Mr. Paul is looking over your search…</div>`
-        :!imp.changes.length?`<div class="impcard"><h4>✦ Mr. Paul’s review</h4><p class="note" style="margin:0">Your search is already strong. ${esc(imp.note||'')}</p></div>`
-        :`<div class="impcard"><h4>✦ Mr. Paul’s recommendations</h4><p class="note" style="margin:0 0 8px">Check the ones you want.</p>
-          <ul class="recs">${imp.changes.map((c,n)=>`<li><label><input type="checkbox" data-rec="${n}" ${S.picks.includes(n)?'checked':''}><span><b>${esc(c.label)}</b><code>${esc(changeText(c))}</code><em>${esc(c.why||'')}</em></span></label></li>`).join('')}</ul>
-          <div class="recprev"><span>Your search with these changes:</span><code id="recq">${esc(applyChanges(baseQuery(),S.picks.map(i=>imp.changes[i])))}</code></div>
-          <div class="row" style="margin:12px 0 0"><button class="go" id="useImp" ${S.picks.length?'':'disabled'}>Accept these recommendations</button><button class="ghost" id="keepMine">No thanks</button></div></div>`}
-    </div>
-    ${same?`<div class="nudge"><p><b>Your search is the same as what most people type.</b> Add a filter or two, or accept Mr. Paul’s recommendation above.</p>
-      <div class="row" style="margin:10px 0 0">${canMore?'<button class="go" id="nudgeMore">Add more filters</button>':''}</div></div>`:`<div class="ba">
+    ${same?`<div class="nudge"><p><b>Your search is the same as what most people type.</b> Add a filter or two to make it smarter.</p>
+      <div class="row" style="margin:10px 0 0"><button class="go" id="nudgeMore">Add a filter</button></div></div>`
+    :`<div class="ba">
       <div class="bacol b"><h4>Before: what most people type</h4><code>${esc(lazy)}</code><button class="mini" id="runLazy">Try it ↗</button></div>
-      <div class="bacol a"><h4>After: the Search Master way</h4>${S.tried?`<label class="editl" for="editQ">Any further changes? Make them here.</label><textarea id="editQ" rows="2">${esc(q)}</textarea>`:`<code>${esc(q)}</code>`}<button class="mini" id="runSmart">Try it ↗</button></div>
+      <div class="bacol a"><h4>After: the Search Master way</h4><code id="afterQ">${esc(q)}</code><button class="mini" id="runSmart">Try it ↗</button></div>
     </div>`}
     ${extra?`<div class="extra"><b>${esc(extra.t)}</b>${extra.d?`<p class="note" style="margin:4px 0 0">${esc(extra.d)}</p>`:''}<code>${esc(extra.q)}</code><button class="mini" style="color:var(--gold)" id="copyExtra">Copy</button> <button class="mini" style="color:var(--gold)" id="runExtra">Run on Google ↗</button></div>`:''}
-    ${S.phase==='how'?'':`<div class="changes" id="changes">
-      ${S.phase==='changes'
-        ?`<p>Change any answer above. Your search updates as you type.</p><div class="row"><button class="go" id="noChg">I’m done, no more changes</button>${S.fin&&S.cur<visible().length?'<button class="ghost" id="more">Add more filters</button>':''}</div>`
-        :`<p>Any changes?</p><div class="row"><button class="go" id="yes">Yes</button><button class="ghost" id="no">No, I’m good</button></div>`}
-    </div>`}
-    ${S.phase==='how'?`<div class="how"><h4>How to use your search on ${esc(p.name)}</h4><ol>${p.how(S.a).map(l=>`<li>${l}</li>`).join('')}</ol>
-      <div class="row"><button class="go" id="copy2">Copy</button><button class="ghost" id="run2">Run This Search ↗</button><button class="ghost" id="other">Search another platform</button></div>
-      <p class="note">On a computer, Run This Search opens a small window on top of this page. Close it to come right back here.</p>
-      <p class="note">Once you know the pieces, you can type searches like this yourself, anywhere. Ads may still show at the top. The goal is the right results, first time.</p></div>`:''}
+    ${S.phase==='changes'?`<div class="changes"><p>Change any answer above. Your final search updates as you go.</p><div class="row"><button class="go" id="noChg">Done changing</button></div></div>`
+      :`<p class="note" style="text-align:center"><a href="#" id="chgAns">Change my answers instead</a></p>`}
   </div>`;
-  const url=p.url(q,S.a);
-  const on=(id,fn)=>{const e=document.getElementById(id);if(e)e.onclick=fn;};
-  on('copy',()=>copy(query()));on('copy2',()=>copy(query()));
-  const tryRun=()=>{openUrl(p.url(query(),S.a));if(!S.tried){S.tried=true;renderResult();}};
-  on('run',tryRun);on('run2',tryRun);on('runSmart',tryRun);
+  const on=(id,fn)=>{const e=document.getElementById(id);if(e)e.onclick=ev=>{ev.preventDefault();fn();};};
+  const fq=document.getElementById('finalQ');
+  fq.oninput=()=>{const v=clean(fq.value);S.override=v&&v!==baseQuery()?v:null;
+    const pl=document.getElementById('partsList');if(pl)pl.innerHTML=partsHTML();
+    const aq=document.getElementById('afterQ');if(aq)aq.textContent=query();refreshLive();
+    const en=document.getElementById('editNote');if(en)en.style.display=S.override?'':'none';};
+  on('resetQ',()=>{S.override=null;renderResult();refreshLive();});
+  on('approve',()=>{copy(query());S.phase='how';renderResult();const h=app.querySelector('.how');if(h)h.scrollIntoView({behavior:'smooth',block:'center'});});
+  on('copy2',()=>copy(query()));
+  const run=()=>openUrl(p.url(query(),S.a));
+  on('run',run);on('runSmart',run);
   on('runLazy',()=>openUrl(p.url(lazy,S.a)));
   if(extra){on('copyExtra',()=>copy(extra.q));on('runExtra',()=>openUrl(google(extra.q)));}
   on('again',()=>{S.fin=false;S.phase=null;changed();const k=p.tryAgain.k;S.cur=Math.max(0,visible().findIndex(s=>s.k===k));renderModule();
     const st=app.querySelector(`.step[data-i="${S.cur}"]`);if(st)st.scrollIntoView({behavior:'smooth',block:'center'});});
-  on('undoImp',()=>{S.override=null;S.accepted=false;renderResult();refreshLive();});
-  on('nudgeMore',()=>{S.fin=false;S.phase=null;S.cur=Math.min(S.cur+1,visible().length);renderModule();
-    const st=app.querySelector(`.step[data-i="${S.cur}"]`);if(st)st.scrollIntoView({behavior:'smooth',block:'center'});});
-  app.querySelectorAll('[data-rec]').forEach(cb=>cb.onchange=()=>{const n=+cb.dataset.rec;
-    S.picks=cb.checked?[...new Set([...S.picks,n])].sort():S.picks.filter(x=>x!==n);
-    const rq=document.getElementById('recq');if(rq)rq.textContent=applyChanges(baseQuery(),S.picks.map(i=>S.imp.changes[i]));
-    const ub=document.getElementById('useImp');if(ub)ub.disabled=!S.picks.length;});
-  on('useImp',()=>{if(!S.picks.length)return;S.override=applyChanges(baseQuery(),S.picks.map(i=>S.imp.changes[i]));S.accepted=true;renderResult();refreshLive();
-    const ba=app.querySelector('.ba');if(ba)ba.scrollIntoView({behavior:'smooth',block:'center'});});
-  on('keepMine',()=>{S.imp={status:'kept'};renderResult();});
-  const eq=document.getElementById('editQ');
-  if(eq){eq.oninput=()=>{const v=clean(eq.value);S.override=v&&v!==baseQuery()?v:null;S.accepted=false;
-      const qb=app.querySelector('.qbox');if(qb)qb.textContent=query();refreshLive();
-      const pl=app.querySelector('.parts');if(pl)pl.innerHTML=(S.override?explain(S.override):P[S.pid].build(S.a)).map(x=>`<li><code>${esc(x[0])}</code><span>${esc(x[1])}</span></li>`).join('');};}
-  autoImprove();
-  on('yes',()=>{S.phase='changes';renderResult();const f=app.querySelector('.step');if(f)f.scrollIntoView({behavior:'smooth',block:'center'});});
-  on('noChg',()=>{S.phase='how';renderResult();});
-  on('more',()=>{S.fin=false;S.phase=null;S.cur=Math.min(S.cur+1,visible().length);renderModule();const st=app.querySelectorAll('.step');const l=st[st.length-1];if(l)l.scrollIntoView({behavior:'smooth',block:'center'});});
-  on('no',()=>{S.phase='how';renderResult();});
+  on('nudgeMore',()=>{const vl=visible().length;
+    if(S.cur<vl-1||(S.fin&&S.cur<vl)){S.fin=false;S.phase=null;S.cur=Math.min(S.cur+1,vl);renderModule();
+      const st=app.querySelector(`.step[data-i="${S.cur}"]`);if(st)st.scrollIntoView({behavior:'smooth',block:'center'});}
+    else{S.phase='changes';renderResult();const st=app.querySelectorAll('.step')[1]||app.querySelector('.step');if(st)st.scrollIntoView({behavior:'smooth',block:'center'});}});
+  on('chgAns',()=>{S.phase='changes';renderResult();const f=app.querySelector('.step');if(f)f.scrollIntoView({behavior:'smooth',block:'center'});});
+  on('noChg',()=>{S.phase=null;renderResult();});
   on('other',()=>{renderHome();postTop();});
   postHeight();
 }
@@ -787,29 +818,6 @@ function explain(q){
     out.push([t,w]);}
   return out;
 }
-function applyChanges(base,list){let q=base;
-  list.forEach(c=>{
-    if(c.replace){if(q.includes(c.replace.from))q=q.replace(c.replace.from,c.replace.to);}
-    else if(c.prefix){if(!(' '+q+' ').includes(' '+c.prefix+' '))q=c.prefix+' '+q;}
-    else if(c.add){if(!(' '+q+' ').includes(' '+c.add+' '))q=q+' '+c.add;}
-  });return clean(q);}
-function changeText(c){return c.replace?`${c.replace.from} → ${c.replace.to}`:c.prefix?`${c.prefix} (in front)`:c.add;}
-let impTimer=null;
-function autoImprove(){
-  if(S.aiDown||S.override||S.ai.status==='off'&&false)return;
-  const base=baseQuery();if(!base||S.impFor===base)return;
-  clearTimeout(impTimer);
-  impTimer=setTimeout(()=>{
-    if(!done()||baseQuery()!==base||S.override)return;
-    const pid=S.pid;S.impFor=base;S.imp={status:'loading'};renderResult();
-    callAI({mode:'improve',platform:P[pid].name,query:base}).then(d=>{
-      if(S.pid!==pid||S.impFor!==base||S.override)return;
-      if(!d||!Array.isArray(d.changes)){S.imp={status:'fail'};renderResult();return;}
-      const ch=d.changes.filter(c=>c&&c.label&&(c.add||c.prefix||(c.replace&&base.includes(c.replace.from)))).slice(0,4);
-      S.imp={status:'done',changes:ch,note:d.note||''};S.picks=[];renderResult();
-    }).catch(()=>{if(S.pid===pid&&S.impFor===base){S.imp={status:'fail'};renderResult();}});
-  },900);
-}
 function refreshLive(){const l=document.getElementById('liveq');if(l)l.textContent=query();}
 function openUrl(u){
   const desktop=window.matchMedia('(min-width:768px) and (pointer:fine)').matches;
@@ -828,6 +836,11 @@ function copy(t){
 }
 function fallback(t,ok){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok();}catch(e){}document.body.removeChild(ta);}
 
+app.addEventListener('change',e=>{const t=e.target;if(!S.pid)return;
+  if(t.dataset.cx!==undefined){S.a[t.dataset.cx+'_x']=t.value;changed();refresh();}
+  else if(t.dataset.mode){S.a[t.dataset.mode+'_m']=t.value;changed();refresh();}
+  else if(t.dataset.exs!==undefined){const w=t.dataset.exs;const sel=S.a.exs||[];S.a.exs=t.checked?[...sel.filter(x=>x!==w),w]:sel.filter(x=>x!==w);changed();refresh();}
+});
 renderHome();
 </script>
 </body>
