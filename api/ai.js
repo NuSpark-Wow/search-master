@@ -60,12 +60,16 @@ module.exports = async (req, res) => {
   try {
     if (body.mode === 'followup') {
       const topic = clip(body.topic, 200);
-      if (!topic) return res.json({ questions: [] });
+      if (!topic) return res.json({ questions: [], exclude: [] });
+      const minus = !['Amazon'].includes(platform);
       const out = await askClaude(
-        'You help people build better searches. Reply with JSON only. Keep everything family-friendly and national (not tied to one city). Never recommend specific companies, brands or local businesses unless the user already named them.',
-        `Platform: ${platform}\nWhat the user is searching for: "${topic}"\n\nWrite 1 or 2 short multiple-choice questions that would most narrow this search (for example, for "jeans": Fit; Fabric). Rules:\n- Each question under 6 words.\n- 4 or 6 options per question.\n- Each option 1 to 3 words that make sense added to the search as words (e.g. "slim fit", "stretch").\n- Lowercase unless a proper noun.\nReturn only: {"questions":[{"q":"...","options":["..."]}]}\nIf the topic is too vague, unsafe or already specific, return {"questions":[]}.`
+        'You help people build better searches. Reply with JSON only. Keep everything family-friendly and national (not tied to one city). Never recommend specific companies, brands or local businesses unless the user already named them. Never use square brackets in search words.',
+        `Platform: ${platform}\nWhat the user is searching for: "${topic}"\n\n1) Write 1 or 2 short multiple-choice questions.\n- If the topic could mean two different things (like "jaguar": the animal or the car; "apple": the company or the fruit), the FIRST question must clear that up.\n- Otherwise ask what would most narrow the search (for "jeans": Fit; for "cybersecurity vendors": Which security area?).\n- Each question under 7 words. 4 or 6 options. Each option 1 to 3 words that make sense added to the search.\n- Lowercase unless a proper noun.\n${minus ? '2) Suggest up to 3 words to LEAVE OUT that commonly pollute this search (for vendor or software searches: jobs). For each: the word, a one-sentence reason, and "strong": true only if it almost always helps.' : '2) Return an empty exclude list.'}\nReturn only: {"questions":[{"q":"...","options":["..."]}],"exclude":[{"w":"...","why":"...","strong":false}]}\nIf the topic is unsafe, return {"questions":[],"exclude":[]}.`
       );
-      return res.json({ questions: Array.isArray(out.questions) ? out.questions.slice(0, 2) : [] });
+      const exclude = (Array.isArray(out.exclude) ? out.exclude : []).slice(0, 3)
+        .map(e => ({ w: clip(e.w, 40).replace(/^-/, ''), why: clip(e.why, 140), strong: !!e.strong }))
+        .filter(e => e.w && !/[\[\]]/.test(e.w));
+      return res.json({ questions: Array.isArray(out.questions) ? out.questions.slice(0, 2) : [], exclude: minus ? exclude : [] });
     }
     if (body.mode === 'improve') {
       const query = clip(body.query, 400);
