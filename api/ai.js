@@ -72,7 +72,7 @@ module.exports = async (req, res) => {
       if (!query) return res.status(400).json({ error: 'No search' });
       const out = await askClaude(
         'You are Mr. Paul, a friendly teacher who helps people search smarter. Reply with JSON only. Never add specific company, brand or local business names the user did not use.',
-        `Platform: ${platform}\nSyntax rules: ${RULES[platform]}\nThe user's search: ${query}\n\nSuggest ONE improved version that keeps the user's intent and follows the platform's syntax rules exactly. Small, smart changes only (fix quotes, grouping, word order, add one useful word or exclusion). Give 1 or 2 short reasons a beginner understands.\nReturn only: {"query":"...","why":["...","..."]}\nIf it is already strong, return the same query with why ["Already strong: ..."].`
+        `Platform: ${platform}\nSyntax rules: ${RULES[platform]}\nThe user's search: ${query}\n\nSuggest ONE improved version that keeps the user's intent and follows the platform's syntax rules exactly. Small, smart changes only (fix grouping, word order, add one or two useful words, an OR group or an exclusion). Do NOT put quotes around the main topic just to make it exact; leave it unquoted so the search engine can find close matches. Only use quotes for names or multi-word phrases that lose their meaning when split (like \"free trial\", \"small business\" or a person's name). Give 1 or 2 short reasons a beginner understands.\nReturn only: {"query":"...","why":["...","..."]}\nIf it is already strong, return the same query with why ["Already strong: ..."].`
       );
       return res.json({ query: clip(out.query, 400), why: Array.isArray(out.why) ? out.why.slice(0, 3).map(w => clip(w, 200)) : [] });
     }
