@@ -128,6 +128,9 @@ code,.q{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .impcard code{display:block;color:#fff;word-break:break-word;margin-bottom:8px;font-size:14px}
 .impcard ul{margin-left:18px;font-size:14px;line-height:1.5}
 .nudge{background:rgba(242,179,61,.08);border:1.5px dashed var(--line);border-radius:14px;padding:14px;margin-bottom:18px;font-size:14px;line-height:1.5}
+.editl{font-size:12.5px;color:var(--gold);font-weight:600;margin-bottom:6px}
+.bacol textarea{width:100%;background:rgba(0,0,0,.3);border:1.5px solid var(--gold);border-radius:10px;color:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;padding:8px 10px;margin-bottom:10px;resize:vertical;outline:none}
+.okline{color:var(--gold)}
 .tipline{background:rgba(242,179,61,.1);border-radius:12px;padding:10px 12px;font-size:14px;margin:-6px 0 16px;line-height:1.45}
 .warnline{margin:-8px 0 14px;color:var(--gold)}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);background:var(--gold);color:var(--em2);font-weight:700;padding:10px 18px;border-radius:999px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
@@ -212,10 +215,10 @@ const isEmpty=v=>v===undefined||v===null||(Array.isArray(v)?v.length===0:String(
 const YEAR=String(new Date().getFullYear());
 const PHRASE_TIP='Use quotes when words lose their meaning apart. Leave your main topic without quotes so Google can find close matches. Names work great in quotes, like "LeBron James."';
 const SPLIT_TIP='Separate words with spaces or commas. Use quotes to keep words together, like "cold email."';
-function phraseParts(s){return list(s).map(w=>w.includes(' ')?[`"${w}"`,'Quotes keep these words together, in this exact order.']:[w,'One word works on its own. Quotes are for two or more words.']);}
+function phraseParts(s){return list(s).map(w=>w.includes(' ')?[`"${w}"`,'Quotes lock these words together, so Google won’t split them up. Narrower, more exact results.']:[w,'One word works on its own. Quotes are for two or more words.']);}
 function minusParts(s,why){return words(s).map(w=>['-'+qt(w),why||'The minus sign removes results with this word.']);}
 function aiWords(a){return ['ai0','ai1'].map(k=>a[k]).filter(Boolean);}
-function aiParts(a){return aiWords(a).map(w=>[w,'From Mr. Paul’s quick question. Narrows it to what you need.']);}
+function aiParts(a){return aiWords(a).map(w=>[w,'Extra words from Mr. Paul’s question that narrow it down.']);}
 const SAVE_TIP='After you add filters, bookmark the results page (Ctrl+D on Windows, Cmd+D on Mac). The link saves your search and filters, so you can run it again anytime with one click.';
 
 /* ---------- Built-in suggestion lists ---------- */
@@ -274,11 +277,11 @@ google:{
     {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'used, kids, jobs, enterprise',split:true}
   ],
   build(a){const p=[];
-    if(a.need)p.push([clean(a.need),'Your main words, left without quotes so Google can find close matches.']);
+    const o=chipVals(this.steps[2],a.opts).map(c=>c.q);
+    if(o.length)p.push([orGroup(o),o.length>1?'OR means any of these will do. Parentheses keep them grouped.':'Goes in front, the way people type it. Pulls the stronger pages to the top.']);
+    if(a.need)p.push([clean(a.need),'Your main words. Without quotes, Google also finds close matches (like “CRM platform”). Add quotes only when you need this exact wording.']);
     p.push(...aiParts(a));
     p.push(...phraseParts(a.phrase));
-    const o=chipVals(this.steps[2],a.opts).map(c=>c.q);
-    if(o.length)p.push([orGroup(o),o.length>1?'OR means any of these will do. Parentheses keep them grouped.':'Pulls the stronger pages to the top.']);
     if(digits(a.price))p.push([`under $${digits(a.price)}`,'Keeps the results inside your budget.']);
     if(a.where==='near')p.push(['near me','Google uses your location to show nearby options.']);
     if(a.where==='city'&&a.city)p.push([qt(clean(a.city)),'Locks the search to that city.']);
@@ -489,7 +492,7 @@ const HOME_H=Math.max(0,parseInt(new URLSearchParams(location.search).get('h'),1
 const ORDER=['google','youtube','reddit','site','facebook','linkedin','amazon','x'];
 
 /* ---------- State ---------- */
-const fresh=()=>({view:'home',pid:null,a:{},cur:0,phase:null,fin:false,ai:{status:'idle',topic:'',qs:[]},override:null,imp:null});
+const fresh=()=>({view:'home',pid:null,a:{},cur:0,phase:null,fin:false,ai:{status:'idle',topic:'',qs:[]},override:null,imp:null,impFor:'',tried:false,aiDown:false});
 let S=fresh();
 const app=document.getElementById('app');
 const val=(st,k)=>{const f=st[k];return typeof f==='function'?f(S.a):f;};
@@ -504,7 +507,8 @@ function visible(){
 }
 const done=()=>S.fin||S.cur>=visible().length;
 const reqDone=()=>visible().every(st=>!st.req||!isEmpty(S.a[st.k]));
-function query(){return S.override||P[S.pid].build(S.a).map(x=>x[0]).join(' ').trim();}
+function baseQuery(){return P[S.pid].build(S.a).map(x=>x[0]).join(' ').trim();}
+function query(){return S.override||baseQuery();}
 function firstAnswered(){const v=visible()[0];return v&&!isEmpty(S.a[v.k]);}
 
 /* ---------- Height for embed (measures the card only) ---------- */
@@ -620,7 +624,7 @@ function stepHTML(st,i,active){
   </div>`;
 }
 function fixNote(v){const {d,fixed}=normSite(v);return fixed?`We used <b>${esc(d)}</b>. Change it if that’s not right.`:'Type it like <b>hbr.org</b>. No https:// needed.';}
-function changed(){S.override=null;S.imp=null;}
+function changed(){S.override=null;S.imp=null;S.tried=false;}
 function wireModule(){
   document.getElementById('restart').onclick=()=>{openModule(S.pid);};
   document.getElementById('close').onclick=()=>{renderHome();postTop();};
@@ -694,17 +698,19 @@ function renderResult(){
     <ul class="parts">${parts.map(x=>`<li><code>${esc(x[0])}</code><span>${esc(x[1])}</span></li>`).join('')}</ul>
     ${notes.map(n=>`<p class="tipline">💡 ${esc(n)}</p>`).join('')}
     <div class="better">
-      ${S.override&&!imp?`<span class="note">✓ Improved by Mr. Paul.</span><button class="ghost" id="undoImp">Undo</button>`
-        :!imp?`<button class="go gold2" id="improve">✨ Make my search better</button><span class="note">Mr. Paul reviews your search and suggests an upgrade.</span>`
-        :imp.status==='loading'?`<div class="note">Mr. Paul is looking over your search…</div>`
-        :imp.status==='fail'?`<div class="note">Mr. Paul couldn’t review it right now. Your search above is ready to use.</div>`
-        :`<div class="impcard"><h4>Mr. Paul’s suggestion</h4><code>${esc(imp.query)}</code><ul>${(imp.why||[]).map(w=>`<li>${esc(w)}</li>`).join('')}</ul>
-          ${imp.query&&imp.query!==q?`<div class="row" style="margin-bottom:0"><button class="go" id="useImp">Use this search</button><button class="ghost" id="keepMine">Keep mine</button></div>`:''}</div>`}
+      ${S.override&&S.accepted&&!imp?`<span class="note okline">✓ Mr. Paul’s recommendation is in your After search. Try it!</span><button class="ghost" id="undoImp">Undo</button>`
+        :!imp||S.aiDown?''
+        :imp.status==='loading'?`<div class="note">✦ Mr. Paul is looking over your search…</div>`
+        :imp.status==='fail'?''
+        :imp.status==='kept'?''
+        :(!imp.query||imp.query===baseQuery())?`<div class="impcard"><h4>✦ Mr. Paul’s review</h4><p class="note" style="margin:0">Your search is already strong. ${esc((imp.why||[])[0]||'')}</p></div>`
+        :`<div class="impcard"><h4>✦ Mr. Paul’s recommendation</h4><code>${esc(imp.query)}</code><ul>${(imp.why||[]).map(w=>`<li>${esc(w)}</li>`).join('')}</ul>
+          <div class="row" style="margin-bottom:0"><button class="go" id="useImp">I accept the recommendation</button><button class="ghost" id="keepMine">Keep mine</button></div></div>`}
     </div>
-    ${same?`<div class="nudge"><p><b>Your search is the same as what most people type.</b> Add a filter or two, or let Mr. Paul upgrade it.</p>
-      <div class="row" style="margin:10px 0 0">${canMore?'<button class="go" id="nudgeMore">Add more filters</button>':''}${!S.override?'<button class="ghost" id="nudgeImp">✨ Make my search better</button>':''}</div></div>`:`<div class="ba">
+    ${same?`<div class="nudge"><p><b>Your search is the same as what most people type.</b> Add a filter or two, or accept Mr. Paul’s recommendation above.</p>
+      <div class="row" style="margin:10px 0 0">${canMore?'<button class="go" id="nudgeMore">Add more filters</button>':''}</div></div>`:`<div class="ba">
       <div class="bacol b"><h4>Before: what most people type</h4><code>${esc(lazy)}</code><button class="mini" id="runLazy">Try it ↗</button></div>
-      <div class="bacol a"><h4>After: the Search Master way</h4><code>${esc(q)}</code><button class="mini" id="runSmart">Try it ↗</button></div>
+      <div class="bacol a"><h4>After: the Search Master way</h4>${S.tried?`<label class="editl" for="editQ">Any further changes? Make them here.</label><textarea id="editQ" rows="2">${esc(q)}</textarea>`:`<code>${esc(q)}</code>`}<button class="mini" id="runSmart">Try it ↗</button></div>
     </div>`}
     ${extra?`<div class="extra"><b>${esc(extra.t)}</b>${extra.d?`<p class="note" style="margin:4px 0 0">${esc(extra.d)}</p>`:''}<code>${esc(extra.q)}</code><button class="mini" style="color:var(--gold)" id="copyExtra">Copy</button> <button class="mini" style="color:var(--gold)" id="runExtra">Run on Google ↗</button></div>`:''}
     ${S.phase==='how'?'':`<div class="changes" id="changes">
@@ -719,22 +725,23 @@ function renderResult(){
   </div>`;
   const url=p.url(q,S.a);
   const on=(id,fn)=>{const e=document.getElementById(id);if(e)e.onclick=fn;};
-  on('copy',()=>copy(q));on('copy2',()=>copy(q));
-  on('run',()=>openUrl(url));on('run2',()=>openUrl(url));on('runSmart',()=>openUrl(url));
+  on('copy',()=>copy(query()));on('copy2',()=>copy(query()));
+  const tryRun=()=>{openUrl(p.url(query(),S.a));if(!S.tried){S.tried=true;renderResult();}};
+  on('run',tryRun);on('run2',tryRun);on('runSmart',tryRun);
   on('runLazy',()=>openUrl(p.url(lazy,S.a)));
   if(extra){on('copyExtra',()=>copy(extra.q));on('runExtra',()=>openUrl(google(extra.q)));}
   on('again',()=>{S.fin=false;S.phase=null;changed();const k=p.tryAgain.k;S.cur=Math.max(0,visible().findIndex(s=>s.k===k));renderModule();
     const st=app.querySelector(`.step[data-i="${S.cur}"]`);if(st)st.scrollIntoView({behavior:'smooth',block:'center'});});
-  on('improve',()=>{S.imp={status:'loading'};renderResult();const pid=S.pid,base=q;
-    callAI({mode:'improve',platform:p.name,query:base}).then(d=>{if(S.pid!==pid||!S.imp)return;
-      if(d&&d.query){S.imp={status:'done',query:String(d.query).slice(0,400),why:(Array.isArray(d.why)?d.why:[]).slice(0,3).map(w=>String(w).slice(0,200))};}else S.imp={status:'fail'};renderResult();})
-    .catch(()=>{if(S.pid===pid&&S.imp){S.imp={status:'fail'};renderResult();}});});
-  on('undoImp',()=>{S.override=null;renderResult();refreshLive();});
-  on('nudgeImp',()=>{const b=document.getElementById('improve');if(b)b.click();});
+  on('undoImp',()=>{S.override=null;S.accepted=false;S.imp=null;S.impFor=baseQuery();renderResult();refreshLive();});
   on('nudgeMore',()=>{S.fin=false;S.phase=null;S.cur=Math.min(S.cur+1,visible().length);renderModule();
     const st=app.querySelector(`.step[data-i="${S.cur}"]`);if(st)st.scrollIntoView({behavior:'smooth',block:'center'});});
-  on('useImp',()=>{S.override=S.imp.query;S.imp=null;renderResult();refreshLive();});
-  on('keepMine',()=>{S.imp=null;renderResult();});
+  on('useImp',()=>{S.override=S.imp.query;S.accepted=true;S.imp=null;renderResult();refreshLive();});
+  on('keepMine',()=>{S.imp={status:'kept'};renderResult();});
+  const eq=document.getElementById('editQ');
+  if(eq){eq.oninput=()=>{const v=clean(eq.value);S.override=v&&v!==baseQuery()?v:null;S.accepted=false;
+      const qb=app.querySelector('.qbox');if(qb)qb.textContent=query();refreshLive();
+      const pl=app.querySelector('.parts');if(pl)pl.innerHTML=(S.override?explain(S.override):P[S.pid].build(S.a)).map(x=>`<li><code>${esc(x[0])}</code><span>${esc(x[1])}</span></li>`).join('');};}
+  autoImprove();
   on('yes',()=>{S.phase='changes';renderResult();const f=app.querySelector('.step');if(f)f.scrollIntoView({behavior:'smooth',block:'center'});});
   on('noChg',()=>{S.phase='how';renderResult();});
   on('more',()=>{S.fin=false;S.phase=null;S.cur=Math.min(S.cur+1,visible().length);renderModule();const st=app.querySelectorAll('.step');const l=st[st.length-1];if(l)l.scrollIntoView({behavior:'smooth',block:'center'});});
@@ -759,11 +766,25 @@ function explain(q){
     else if(/^filter:/.test(low))w='Only posts of that kind.';
     else if(t.startsWith('-'))w='The minus sign removes results with this.';
     else if(t.startsWith('('))w=t.includes(' OR ')?'OR means any of these will do. Parentheses keep them grouped.':'Grouped together.';
-    else if(t.startsWith('"'))w='Quotes keep these words together, in this exact order.';
+    else if(t.startsWith('"'))w='Quotes lock these words together, so they won’t be split up. Narrower, more exact results.';
     else if(t==='OR')w='Either side will do.';
     else w='A search word.';
     out.push([t,w]);}
   return out;
+}
+let impTimer=null;
+function autoImprove(){
+  if(S.aiDown||S.override||S.ai.status==='off'&&false)return;
+  const base=baseQuery();if(!base||S.impFor===base)return;
+  clearTimeout(impTimer);
+  impTimer=setTimeout(()=>{
+    if(!done()||baseQuery()!==base||S.override)return;
+    const pid=S.pid;S.impFor=base;S.imp={status:'loading'};renderResult();
+    callAI({mode:'improve',platform:P[pid].name,query:base}).then(d=>{
+      if(S.pid!==pid||S.impFor!==base||S.override)return;
+      S.imp=d&&d.query?{status:'done',query:String(d.query).slice(0,400),why:(Array.isArray(d.why)?d.why:[]).slice(0,3).map(w=>String(w).slice(0,200))}:{status:'fail'};renderResult();
+    }).catch(()=>{if(S.pid===pid&&S.impFor===base){S.imp={status:'fail'};renderResult();}});
+  },900);
 }
 function refreshLive(){const l=document.getElementById('liveq');if(l)l.textContent=query();}
 function openUrl(u){
