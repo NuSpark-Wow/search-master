@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Search Master | Learn...Wow!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --em1:#0F6E51; --em2:#073D2E; --em3:#0A5640;
+  --gold:#F2B33D; --gold2:#E09E1F;
+  --cream:#F7F3E8; --soft:rgba(247,243,232,.78);
+  --line:rgba(242,179,61,.35); --panel:rgba(255,255,255,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:transparent}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--cream);-webkit-font-smoothing:antialiased}
+.card{background:linear-gradient(180deg,var(--em1) 0%,var(--em2) 100%);border-radius:28px;padding:34px 30px 30px;position:relative;overflow:hidden}
+.label{text-align:center;color:var(--gold);font-weight:700;letter-spacing:.28em;font-size:13px;text-transform:uppercase;margin-bottom:12px}
+h1{font-family:'Lora',Georgia,serif;font-weight:700;text-align:center;font-size:clamp(26px,3.4vw,38px);line-height:1.18;margin-bottom:10px}
+.sub{text-align:center;color:var(--soft);font-size:17px;line-height:1.5;max-width:520px;margin:0 auto 18px}
+
+/* Banner */
+.banner{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0 20px}
+.pane{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:10px 8px 12px;text-align:center}
+.pane svg{width:100%;max-width:150px;height:auto;display:block;margin:0 auto}
+.cap{font-weight:600;font-size:15px;margin-top:6px;line-height:1.3}
+.pane.before .cap{color:#F6B4A6}
+.pane.after .cap{color:var(--gold)}
+.tag{display:inline-block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;opacity:.7;margin-bottom:4px}
+
+/* Platform grid */
+.ask{text-align:center;font-weight:600;font-size:16px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.pbtn{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.14);color:var(--cream);border-radius:16px;padding:12px 6px;cursor:pointer;font-family:inherit;transition:.15s}
+.pbtn:hover{border-color:var(--gold);background:rgba(242,179,61,.12)}
+.pbtn .ic{font-size:22px;display:block;margin-bottom:4px}
+.pbtn .nm{font-weight:700;font-size:14px;display:block}
+.pbtn .ps{font-size:11px;opacity:.7;display:block;margin-top:2px}
+.try{text-align:center;margin-top:18px;font-size:15px;line-height:1.9;color:var(--soft)}
+.try a{color:var(--gold);text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+
+/* Module */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:18px}
+.mtitle{font-family:'Lora',Georgia,serif;font-weight:700;font-size:22px}
+.mtitle small{display:block;font-family:'Inter';font-weight:600;font-size:12px;letter-spacing:.2em;color:var(--gold);text-transform:uppercase;margin-bottom:2px}
+.ctrls{display:flex;gap:8px;flex-shrink:0}
+.cbtn{background:transparent;border:1.5px solid var(--gold);color:var(--gold);border-radius:999px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
+.cbtn:hover{background:var(--gold);color:var(--em2)}
+.tip{display:flex;gap:12px;align-items:center;background:rgba(0,0,0,.18);border-left:4px solid var(--gold);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:15px;line-height:1.45}
+.tip svg{width:52px;height:52px;flex-shrink:0}
+.exbtn{background:none;border:none;color:var(--gold);text-decoration:underline;text-underline-offset:4px;font-weight:600;cursor:pointer;font-family:inherit;font-size:14px;margin:0 0 14px}
+
+.step{background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 16px;margin-bottom:12px;animation:pop .25s ease}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.sh{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+.n{background:var(--gold);color:var(--em2);width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.ex{font-size:13px;color:var(--soft);margin:6px 0 8px 36px}
+.ex b{color:var(--cream);font-weight:600}
+.field{margin-left:36px}
+input[type=text]{width:100%;background:rgba(0,0,0,.25);border:1.5px solid rgba(255,255,255,.18);border-radius:12px;color:var(--cream);font-size:16px;padding:11px 14px;font-family:inherit;outline:none}
+input[type=text]:focus{border-color:var(--gold)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:rgba(0,0,0,.2);border:1.5px solid rgba(255,255,255,.2);color:var(--cream);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.chip.on{background:var(--gold);border-color:var(--gold);color:var(--em2)}
+.sa{display:flex;gap:10px;margin:12px 0 0 36px}
+.go{background:var(--gold);color:var(--em2);border:none;border-radius:999px;padding:10px 20px;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit}
+.go:hover{background:var(--gold2)}
+.ghost{background:transparent;color:var(--cream);border:1.5px solid rgba(255,255,255,.3);border-radius:999px;padding:10px 18px;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit}
+.warn{color:#F6B4A6;font-size:13px;margin:8px 0 0 36px;display:none}
+
+.live{border:1.5px dashed var(--line);border-radius:14px;padding:10px 14px;margin:4px 0 14px;font-size:14px}
+.live span{color:var(--soft);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;display:block;margin-bottom:4px}
+code,.q{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.live code{color:var(--gold);word-break:break-word}
+
+.noanim,.noanim *{animation:none!important}
+.result{border-top:1px solid rgba(255,255,255,.12);padding-top:18px;margin-top:6px;animation:pop .3s ease}
+.rh{font-family:'Lora',Georgia,serif;font-size:22px;font-weight:700;margin-bottom:10px}
+.qbox{background:rgba(0,0,0,.3);border:2px solid var(--gold);border-radius:14px;padding:14px;font-size:16px;color:#fff;word-break:break-word;line-height:1.5}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 18px}
+.parts{list-style:none;margin-bottom:18px}
+.parts li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:14px;line-height:1.45}
+.parts code{background:rgba(242,179,61,.15);color:var(--gold);padding:3px 8px;border-radius:8px;max-width:50%;word-break:break-word;flex-shrink:0}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.bacol{background:var(--panel);border-radius:14px;padding:12px;border:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column}
+.bacol h4{font-size:12px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:6px}
+.bacol.b h4{color:#F6B4A6}.bacol.a h4{color:var(--gold)}
+.bacol code{font-size:13px;word-break:break-word;flex:1;margin-bottom:10px;line-height:1.45}
+.mini{background:transparent;border:1.5px solid currentColor;border-radius:999px;padding:7px 12px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;align-self:flex-start}
+.bacol.b .mini{color:#F6B4A6}.bacol.a .mini{color:var(--gold)}
+.extra{background:rgba(0,0,0,.18);border-radius:14px;padding:12px 14px;margin-bottom:18px;font-size:14px;line-height:1.5}
+.extra code{color:var(--gold);word-break:break-word;display:block;margin:6px 0 10px}
+.changes{text-align:center;background:rgba(242,179,61,.1);border:1.5px solid var(--line);border-radius:16px;padding:16px}
+.changes p{font-weight:700;font-size:18px;margin-bottom:12px}
+.changes .row{justify-content:center;margin:0}
+.how{background:rgba(0,0,0,.2);border-radius:16px;padding:16px 18px;margin-top:14px;animation:pop .3s ease}
+.how h4{font-family:'Lora',Georgia,serif;font-size:19px;margin-bottom:10px}
+.how ol{margin-left:20px;line-height:1.6;font-size:15px}
+.how li{margin-bottom:6px}
+.note{font-size:13px;color:var(--soft);margin-top:10px;line-height:1.5}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);background:var(--gold);color:var(--em2);font-weight:700;padding:10px 18px;border-radius:999px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:620px){
+  .card{padding:26px 16px 22px;border-radius:22px}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .ba{grid-template-columns:1fr}
+  .topbar{flex-direction:column;align-items:flex-start}
+  .ex,.field,.sa,.warn{margin-left:0}
+  .parts code{max-width:55%}
+}
+</style>
+</head>
+<body>
+<div class="card" id="app"></div>
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+/* ---------- Cartoon Mr. Paul ---------- */
+function mrPaul(mood){
+  const skin='#F5CBAA', robe='#1E1F24';
+  const sad = mood==='sad';
+  const brows = sad
+    ? '<path d="M68 70 L91 76" stroke="#8a8a8a" stroke-width="4" stroke-linecap="round"/><path d="M132 70 L109 76" stroke="#8a8a8a" stroke-width="4" stroke-linecap="round"/>'
+    : '<path d="M69 72 Q80 65 91 71" stroke="#8a8a8a" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M109 71 Q120 65 131 72" stroke="#8a8a8a" stroke-width="4" fill="none" stroke-linecap="round"/>';
+  const mouth = sad
+    ? '<path d="M86 123 Q100 113 114 123" stroke="#9b4a2c" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
+    : '<path d="M83 113 Q100 130 117 113" stroke="#9b4a2c" stroke-width="3.5" fill="#fff" stroke-linecap="round"/>';
+  const extras = sad
+    ? `<path d="M48 200 Q26 150 46 84" stroke="${robe}" stroke-width="17" fill="none" stroke-linecap="round"/>
+       <circle cx="49" cy="76" r="11" fill="${skin}" stroke="#d9a07e" stroke-width="1.5"/>
+       <path d="M150 54 q7 11 0 16 q-7 -5 0 -16z" fill="#8fd3ff"/>
+       <text x="160" y="44" font-family="Lora,Georgia,serif" font-weight="700" font-size="30" fill="#F6B4A6">?</text>
+       <text x="176" y="66" font-family="Lora,Georgia,serif" font-weight="700" font-size="22" fill="#F6B4A6">?</text>`
+    : `<path d="M152 200 Q174 168 170 138" stroke="${robe}" stroke-width="17" fill="none" stroke-linecap="round"/>
+       <rect x="158" y="120" width="24" height="20" rx="7" fill="${skin}" stroke="#d9a07e" stroke-width="1.5"/>
+       <rect x="162" y="100" width="10" height="24" rx="5" fill="${skin}" stroke="#d9a07e" stroke-width="1.5"/>
+       <path d="M30 46 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z" fill="#F2B33D"/>
+       <path d="M44 22 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#F2B33D"/>
+       <path d="M176 70 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#F2B33D"/>`;
+  return `<svg viewBox="0 0 200 210" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M38 210 Q42 158 100 150 Q158 158 162 210Z" fill="${robe}"/>
+    <path d="M84 150 L100 180 L116 150Z" fill="#A9CCEF"/>
+    <path d="M97 158 L103 158 L102.5 176 L100 181 L97.5 176Z" fill="${robe}"/>
+    <rect x="88" y="126" width="24" height="28" fill="${skin}"/>
+    <ellipse cx="57" cy="92" rx="9" ry="13" fill="${skin}"/>
+    <ellipse cx="143" cy="92" rx="9" ry="13" fill="${skin}"/>
+    <path d="M54 66 Q42 96 58 120 Q63 98 62 76Z" fill="#ECECEE" stroke="#c9c9cc" stroke-width="1.5"/>
+    <path d="M146 66 Q158 96 142 120 Q137 98 138 76Z" fill="#ECECEE" stroke="#c9c9cc" stroke-width="1.5"/>
+    <ellipse cx="100" cy="86" rx="44" ry="50" fill="${skin}"/>
+    <path d="M57 72 Q58 34 100 33 Q142 34 143 72 Q130 52 100 50 Q70 52 57 72Z" fill="#E6E6E8" stroke="#cfcfd2" stroke-width="1.5"/>
+    <path d="M78 44 Q90 40 98 48 M104 44 Q114 40 124 47" stroke="#cfcfd2" stroke-width="2" fill="none"/>
+    ${brows}
+    <rect x="67" y="79" width="27" height="19" rx="5" fill="rgba(255,255,255,.35)" stroke="#3a3a3e" stroke-width="4"/>
+    <rect x="106" y="79" width="27" height="19" rx="5" fill="rgba(255,255,255,.35)" stroke="#3a3a3e" stroke-width="4"/>
+    <path d="M94 87 L106 87" stroke="#3a3a3e" stroke-width="4"/>
+    <circle cx="80.5" cy="89" r="3.2" fill="#2b2b2b"/><circle cx="119.5" cy="89" r="3.2" fill="#2b2b2b"/>
+    <path d="M100 94 Q95 106 102 107" stroke="#c98f6d" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="72" cy="110" rx="7" ry="4.5" fill="#F2A0A0" opacity=".65"/>
+    <ellipse cx="128" cy="110" rx="7" ry="4.5" fill="#F2A0A0" opacity=".65"/>
+    ${mouth}
+    ${extras}
+  </svg>`;
+}
+
+/* ---------- Helpers ---------- */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clean=s=>String(s||'').trim().replace(/\s+/g,' ');
+const list=s=>String(s||'').split(',').map(x=>clean(x).replace(/^["']|["']$/g,'')).filter(Boolean);
+const qt=s=>s.includes(' ')?`"${s}"`:s;
+const minus=arr=>arr.map(w=>'-'+qt(w));
+const digits=s=>String(s||'').replace(/[^0-9.]/g,'');
+const enc=encodeURIComponent;
+const google=q=>'https://www.google.com/search?q='+enc(q);
+function orGroup(arr){return arr.length>1?`(${arr.join(' OR ')})`:arr[0];}
+function daysAgo(n){const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);}
+function chipVals(step,vals){return (vals||[]).map(v=>step.chips.find(c=>c.v===v)).filter(Boolean);}
+
+/* ---------- Platforms ---------- */
+const P={
+google:{
+  name:'Google',ps:'Ready to buy',ic:'🛒',
+  tip:'Google reads every symbol. Quotes keep words together, OR widens, a minus sign cuts words out.',
+  steps:[
+    {k:'need',label:'What do you want to buy or hire?',type:'text',ex:'running shoes for flat feet · roof repair · standing desk',req:true},
+    {k:'phrase',label:'Any words that must stay together? (optional)',type:'text',ex:'flat feet · memory foam · same day'},
+    {k:'opts',label:'How picky are you?',type:'multi',chips:[{v:'best',l:'Best',q:'best'},{v:'top',l:'Top rated',q:'"top rated"'},{v:'aff',l:'Affordable',q:'affordable'},{v:'yr',l:'This year',q:String(new Date().getFullYear())}]},
+    {k:'price',label:'Price limit? (optional)',type:'text',ex:'100 (just the number)'},
+    {k:'where',label:'Where?',type:'single',chips:[{v:'',l:'Skip'},{v:'near',l:'Near me'},{v:'city',l:'In a city'}]},
+    {k:'city',label:'Which city or town?',type:'text',ex:'Denver · Austin TX',showIf:a=>a.where==='city'},
+    {k:'proof',label:'What proof do you want?',type:'multi',chips:[{v:'rev',l:'Reviews',q:'review'},{v:'test',l:'Tested',q:'tested'},{v:'vs',l:'Comparisons',q:'vs'},{v:'red',l:'Only Reddit opinions'}]},
+    {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'kids, used, rental — separate with commas'}
+  ],
+  build(a){const p=[];
+    if(a.need)p.push([clean(a.need),'Your main words: what you want.']);
+    if(a.phrase)p.push([`"${clean(a.phrase)}"`,'Quotes keep these words together, in this exact order.']);
+    const o=chipVals(this.steps[2],a.opts).map(c=>c.q);
+    if(o.length)p.push([orGroup(o),o.length>1?'OR means any of these will do. Parentheses keep them grouped.':'Pulls the stronger pages to the top.']);
+    if(digits(a.price))p.push([`under $${digits(a.price)}`,'Keeps the results inside your budget.']);
+    if(a.where==='near')p.push(['near me','Google uses your location to show nearby options.']);
+    if(a.where==='city'&&a.city)p.push([qt(clean(a.city)),'Locks the search to that city.']);
+    const pr=chipVals(this.steps[6],a.proof).filter(c=>c.q).map(c=>c.q);
+    if(pr.length)p.push([orGroup(pr),'Finds pages that test or review, not just sell.']);
+    if((a.proof||[]).includes('red'))p.push(['site:reddit.com','Only shows real people talking on Reddit.']);
+    list(a.ex).forEach(w=>p.push(['-'+qt(w),'The minus sign removes pages with this word.']));
+    return p;},
+  lazy:a=>clean(a.need)+(a.where==='city'&&a.city?' '+clean(a.city):''),
+  url:q=>google(q),
+  how:a=>['Tap <b>Copy</b>.','Go to <b>google.com</b>.','Paste into the search bar and press <b>Enter</b>.','Want newer results? Tap <b>Tools</b> under the search bar and pick <b>Past year</b>.'],
+  examples:[{label:'A standing desk under $300',a:{need:'standing desk',phrase:'',opts:['best','top'],price:'300',where:'',proof:['rev','test'],ex:'used, kids'}}]
+},
+youtube:{
+  name:'YouTube',ps:'Videos',ic:'🎬',
+  tip:'YouTube works best with the type of video in your search: how to, review, explained. Then use its Filters.',
+  steps:[
+    {k:'topic',label:'What do you want to watch or learn?',type:'text',ex:'change a tire · sourdough bread · Excel pivot tables',req:true},
+    {k:'phrase',label:'Any words that must stay together? (optional)',type:'text',ex:'pivot tables · flat tire'},
+    {k:'type',label:'What kind of video?',type:'single',chips:[{v:'',l:'Any'},{v:'how to',l:'How to'},{v:'tutorial',l:'Tutorial'},{v:'review',l:'Review'},{v:'explained',l:'Explained'},{v:'for beginners',l:'For beginners'},{v:'vs',l:'Comparison'},{v:'step by step',l:'Step by step'}]},
+    {k:'yr',label:'Only recent videos?',type:'single',chips:[{v:'',l:'Any time'},{v:'y',l:'This year'}]},
+    {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'shorts, reaction, prank'}
+  ],
+  build(a){const p=[];
+    if(a.type&&a.type!=='vs')p.push([qt(a.type),'Tells YouTube the kind of video you want.']);
+    if(a.topic)p.push([clean(a.topic),'Your main topic.']);
+    if(a.type==='vs')p.push(['vs','Finds side-by-side comparison videos.']);
+    if(a.phrase)p.push([`"${clean(a.phrase)}"`,'Quotes keep these words together.']);
+    if(a.yr)p.push([String(new Date().getFullYear()),'Creators put the year in titles, so this finds newer videos.']);
+    list(a.ex).forEach(w=>p.push(['-'+qt(w),'Removes videos with this word.']));
+    return p;},
+  lazy:a=>clean(a.topic),
+  url:q=>'https://www.youtube.com/results?search_query='+enc(q),
+  how:a=>['Tap <b>Copy</b>.','Open <b>YouTube</b> and tap the search icon.','Paste and press <b>Enter</b>.','Tap <b>Filters</b> to narrow it: <b>Upload date</b> for newer videos, <b>Duration</b> for longer ones, or <b>Type: Video</b> to skip Shorts.'],
+  examples:[{label:'Learn to change a tire',a:{topic:'change a tire',phrase:'',type:'how to',yr:'',ex:'shorts, prank'}}]
+},
+reddit:{
+  name:'Reddit',ps:'Real opinions',ic:'💬',
+  tip:'Reddit’s own search is weak. Google finds Reddit threads better, so we search Reddit through Google.',
+  steps:[
+    {k:'topic',label:'What do you want real opinions on?',type:'text',ex:'air fryer · Honda CR-V · meal kits',req:true},
+    {k:'want',label:'What do you want to hear?',type:'multi',chips:[{v:'rec',l:'Recommendations',q:'recommendations'},{v:'worth',l:'Is it worth it?',q:'"worth it"'},{v:'reg',l:'Regrets & problems',q:'regret'},{v:'alt',l:'Alternatives',q:'alternatives'}]},
+    {k:'sub',label:'A specific subreddit? (optional)',type:'text',ex:'BuyItForLife · personalfinance (name only, no r/)'},
+    {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'meme, giveaway'}
+  ],
+  build(a){const p=[];
+    const s=clean(a.sub).replace(/^\/?r\//i,'').replace(/\s/g,'');
+    p.push([s?`site:reddit.com/r/${s}`:'site:reddit.com',s?'Searches only that one Reddit community.':'Only shows results from Reddit.']);
+    if(a.topic)p.push([clean(a.topic),'Your main topic.']);
+    const w=chipVals(this.steps[1],a.want).map(c=>c.q);
+    if(w.length)p.push([orGroup(w),'Finds the threads where people share what they really think.']);
+    list(a.ex).forEach(x=>p.push(['-'+qt(x),'Removes threads with this word.']));
+    return p;},
+  lazy:a=>clean(a.topic)+' reddit',
+  url:q=>google(q),
+  how:a=>['Tap <b>Copy</b>.','Go to <b>google.com</b>, not Reddit. The <code>site:reddit.com</code> part does the work.','Paste and press <b>Enter</b>.','Tap <b>Tools → Past year</b> to skip old threads.'],
+  examples:[{label:'What people really think of air fryers',a:{topic:'air fryer',want:['worth','reg'],sub:'',ex:''}}]
+},
+site:{
+  name:'A Website',ps:'Search one site',ic:'🌐',
+  tip:'Lots of websites have weak search boxes. Google’s site: command searches just one website, and does it better.',
+  steps:[
+    {k:'dom',label:'Which website?',type:'text',ex:'consumerreports.org · cdc.gov · nasa.gov',req:true},
+    {k:'topic',label:'What are you looking for on it?',type:'text',ex:'car seats · flu shot · Mars rover',req:true},
+    {k:'phrase',label:'Any words that must stay together? (optional)',type:'text',ex:'car seat · side effects'},
+    {k:'kind',label:'What kind of page?',type:'single',chips:[{v:'',l:'Any page'},{v:'pdf',l:'PDFs only'},{v:'title',l:'Topic in the title'},{v:'ppt',l:'Slide decks'}]},
+    {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'archive, press release'}
+  ],
+  build(a){const p=[];
+    const d=clean(a.dom).replace(/^https?:\/\//i,'').replace(/^www\./i,'').replace(/\/.*$/,'').replace(/\s/g,'');
+    if(d)p.push([`site:${d}`,'Searches only this one website.']);
+    if(a.kind==='title'&&a.topic)p.push([`intitle:${qt(clean(a.topic))}`,'Only pages with your topic in the page title.']);
+    else if(a.topic)p.push([clean(a.topic),'Your main topic.']);
+    if(a.phrase)p.push([`"${clean(a.phrase)}"`,'Quotes keep these words together.']);
+    if(a.kind==='pdf')p.push(['filetype:pdf','Only PDF files: guides, reports, manuals.']);
+    if(a.kind==='ppt')p.push(['filetype:pptx','Only slide decks.']);
+    list(a.ex).forEach(x=>p.push(['-'+qt(x),'Removes pages with this word.']));
+    return p;},
+  lazy:a=>clean(a.topic)+' '+clean(a.dom),
+  url:q=>google(q),
+  how:a=>['Tap <b>Copy</b>.','Go to <b>google.com</b>.','Paste and press <b>Enter</b>. Every result comes from that one website.'],
+  examples:[{label:'Find a car seat guide on one site',a:{dom:'consumerreports.org',topic:'car seats',phrase:'',kind:'',ex:''}}]
+},
+facebook:{
+  name:'Facebook',ps:'Groups & events',ic:'👥',
+  tip:'Facebook’s own search box ignores AND, OR and NOT, so we search Facebook through Google. Marketplace is the exception.',
+  steps:[
+    {k:'topic',label:'What are you looking for?',type:'text',ex:'hiking club · garage sale · dog training',req:true},
+    {k:'where',label:'Where on Facebook?',type:'single',chips:[{v:'groups',l:'Groups'},{v:'events',l:'Events'},{v:'any',l:'Anywhere'},{v:'mkt',l:'Marketplace'}],req:true},
+    {k:'city',label:'A city or town? (optional)',type:'text',ex:'Phoenix · Columbus Ohio'},
+    {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'kids, online'}
+  ],
+  build(a){const p=[];
+    if(a.where==='mkt'){
+      if(a.topic)p.push([clean(a.topic),'Plain, specific words. Marketplace doesn’t read symbols.']);
+      return p;}
+    const s={groups:'site:facebook.com/groups',events:'site:facebook.com/events',any:'site:facebook.com'}[a.where]||'site:facebook.com';
+    p.push([s,a.where==='groups'?'Only Facebook Groups.':a.where==='events'?'Only Facebook Events.':'Only Facebook pages.']);
+    if(a.topic)p.push([clean(a.topic),'Your main topic.']);
+    if(a.city)p.push([qt(clean(a.city)),'Keeps it local to that city.']);
+    list(a.ex).forEach(x=>p.push(['-'+qt(x),'Removes results with this word.']));
+    return p;},
+  lazy:a=>clean(a.topic)+' facebook'+(a.city?' '+clean(a.city):''),
+  url:(q,a)=>a.where==='mkt'?'https://www.facebook.com/marketplace/search/?query='+enc(q):google(q),
+  how:a=>a.where==='mkt'
+    ?['Tap <b>Copy</b>.','Open <b>Facebook</b> and tap <b>Marketplace</b>.','Paste into the Marketplace search bar.','Set your filters: <b>Location & radius</b>, <b>Price</b> and <b>Date listed</b>. Filters do most of the work here.']
+    :['Tap <b>Copy</b>.','Go to <b>google.com</b>, not Facebook.','Paste and press <b>Enter</b>.','Tap a result to open it on Facebook. You may need to be logged in to see everything.'],
+  examples:[{label:'Find a local hiking group',a:{topic:'hiking club',where:'groups',city:'Phoenix',ex:''}}]
+},
+linkedin:{
+  name:'LinkedIn',ps:'People & jobs',ic:'💼',
+  tip:'LinkedIn speaks real Boolean: AND, OR and NOT, in capital letters, plus quotes and parentheses.',
+  steps:[
+    {k:'type',label:'What are you looking for?',type:'single',chips:[{v:'people',l:'People'},{v:'jobs',l:'Jobs'},{v:'companies',l:'Companies'},{v:'posts',l:'Posts'}],req:true},
+    {k:'titles',label:'Job titles or names (separate with commas)',type:'text',ex:'VP Marketing, Head of Marketing · nurse practitioner',req:true},
+    {k:'must',label:'Must-have words? (optional)',type:'text',ex:'SaaS, remote, healthcare'},
+    {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'intern, assistant, recruiter'}
+  ],
+  build(a){const p=[];
+    const t=list(a.titles).map(qt);
+    if(t.length)p.push([orGroup(t),t.length>1?'OR finds any of these titles. Parentheses keep them together.':'Your main search words.']);
+    list(a.must).forEach(w=>p.push(['AND '+qt(w),'AND means this word must be there too.']));
+    list(a.ex).forEach(w=>p.push(['NOT '+qt(w),'NOT removes anyone or anything with this word.']));
+    return p;},
+  lazy:a=>list(a.titles)[0]||'',
+  url:(q,a)=>{const k=enc(q);return a.type==='jobs'?'https://www.linkedin.com/jobs/search/?keywords='+k
+    :a.type==='companies'?'https://www.linkedin.com/search/results/companies/?keywords='+k
+    :a.type==='posts'?'https://www.linkedin.com/search/results/content/?keywords='+k
+    :'https://www.linkedin.com/search/results/people/?keywords='+k;},
+  how:a=>['Tap <b>Copy</b>.','Open <b>LinkedIn</b> and tap the search bar at the top.','Paste and press <b>Enter</b>.',`Tap <b>${a.type==='jobs'?'Jobs':a.type==='companies'?'Companies':a.type==='posts'?'Posts':'People'}</b>, then use the filters: <b>Locations</b>${a.type==='jobs'?', <b>Date posted</b>, <b>Remote</b>':', <b>Current company</b>, <b>Industry</b>'}.`],
+  examples:[{label:'Find a remote marketing job',a:{type:'jobs',titles:'marketing manager, marketing director',must:'remote',ex:'intern'}}]
+},
+amazon:{
+  name:'Amazon',ps:'Shop smarter',ic:'📦',
+  tip:'Amazon mostly ignores quotes and minus signs. Specific words and its filters do the work, and Reddit checks the reviews.',
+  steps:[
+    {k:'prod',label:'What product?',type:'text',ex:'cordless drill · blender · rain jacket',req:true},
+    {k:'must',label:'Must-have features (separate with commas)',type:'text',ex:'20V, brushless, with battery'},
+    {k:'who',label:'Who is it for?',type:'single',chips:[{v:'',l:'Skip'},{v:"men's",l:"Men's"},{v:"women's",l:"Women's"},{v:'kids',l:'Kids'}]},
+    {k:'price',label:'Price limit? (optional)',type:'text',ex:'100 (just the number)'},
+    {k:'stars',label:'Star rating',type:'single',chips:[{v:'4',l:'4 stars & up'},{v:'',l:'Any'}]}
+  ],
+  build(a){const p=[];
+    if(a.who)p.push([a.who,'Narrows it to the right fit.']);
+    if(a.prod)p.push([clean(a.prod),'Your product.']);
+    list(a.must).forEach(w=>p.push([w,'Each feature word filters out products that don’t match.']));
+    return p;},
+  lazy:a=>clean(a.prod),
+  url:q=>'https://www.amazon.com/s?k='+enc(q),
+  how:a=>{const f=[];if(digits(a.price))f.push(`<b>Price</b>: up to $${digits(a.price)}`);if(a.stars)f.push('<b>Customer reviews</b>: 4 stars & up');
+    return ['Tap <b>Copy</b>.','Open <b>Amazon</b> and paste into the search bar.',f.length?`Use the filters (left side on a computer, <b>Filters</b> on your phone): ${f.join(', ')}.`:'Use the filters (left side on a computer, <b>Filters</b> on your phone) for price, rating and Prime.','Before you buy, run the <b>real reviews check</b> below on Google.'];},
+  extra:a=>a.prod?{t:'Real reviews check (paste into Google)',q:`"${clean(a.prod)}" (review OR "worth it" OR regret) site:reddit.com`}:null,
+  examples:[{label:'A cordless drill that’s worth it',a:{prod:'cordless drill',must:'20V, brushless',who:'',price:'150',stars:'4'}}]
+},
+x:{
+  name:'X',ps:'Posts & news',ic:'𝕏',
+  tip:'X has the strongest search of any social site: from:, min_faves:, since: and more.',
+  steps:[
+    {k:'topic',label:'What topic?',type:'text',ex:'solar eclipse · Super Bowl ads · AI news',req:true},
+    {k:'phrase',label:'Any words that must stay together? (optional)',type:'text',ex:'Super Bowl · electric car'},
+    {k:'from',label:'From one account? (optional)',type:'text',ex:'NASA · NWS (no @ needed)'},
+    {k:'pop',label:'How popular?',type:'single',chips:[{v:'',l:'Any'},{v:'100',l:'100+ likes'},{v:'1000',l:'1,000+ likes'},{v:'10000',l:'10,000+ likes'}]},
+    {k:'when',label:'How recent?',type:'single',chips:[{v:'',l:'Any time'},{v:'7',l:'Past week'},{v:'30',l:'Past month'},{v:'365',l:'Past year'}]},
+    {k:'media',label:'Only posts with…',type:'single',chips:[{v:'',l:'Anything'},{v:'media',l:'Photos & videos'},{v:'links',l:'Links'},{v:'news',l:'News links'}]},
+    {k:'ex',label:'Anything to leave out? (optional)',type:'text',ex:'giveaway, crypto'}
+  ],
+  build(a){const p=[];
+    if(a.topic)p.push([clean(a.topic),'Your main topic.']);
+    if(a.phrase)p.push([`"${clean(a.phrase)}"`,'Quotes keep these words together.']);
+    if(a.from)p.push([`from:${clean(a.from).replace(/^@/,'').replace(/\s/g,'')}`,'Only posts from that account.']);
+    if(a.pop)p.push([`min_faves:${a.pop}`,'Only posts with at least this many likes.']);
+    if(a.when)p.push([`since:${daysAgo(+a.when)}`,'Only posts after this date.']);
+    if(a.media==='media')p.push(['filter:media','Only posts with photos or videos.']);
+    if(a.media==='links')p.push(['filter:links','Only posts with links.']);
+    if(a.media==='news')p.push(['filter:news','Only posts linking to news stories.']);
+    list(a.ex).forEach(x=>p.push(['-'+qt(x),'Removes posts with this word.']));
+    return p;},
+  lazy:a=>clean(a.topic),
+  url:q=>'https://x.com/search?q='+enc(q)+'&src=typed_query',
+  how:a=>['Tap <b>Copy</b>.','Open <b>X</b> and go to the <b>Explore</b> (search) page. You need to be logged in.','Paste and press <b>Enter</b>.','Tap <b>Latest</b> for the newest posts or <b>Top</b> for the most popular.'],
+  examples:[{label:'Popular eclipse photos',a:{topic:'solar eclipse',phrase:'',from:'',pop:'1000',when:'',media:'media',ex:'giveaway'}}]
+}};
+const ORDER=['google','youtube','reddit','site','facebook','linkedin','amazon','x'];
+
+/* ---------- State ---------- */
+let S={view:'home',pid:null,a:{},cur:0,phase:null,fin:false};
+const app=document.getElementById('app');
+const visible=()=>P[S.pid].steps.filter(s=>!s.showIf||s.showIf(S.a));
+const done=()=>S.fin||S.cur>=visible().length;
+const isEmpty=v=>v===undefined||v===null||(Array.isArray(v)?v.length===0:String(v).trim()==='');
+const reqDone=()=>visible().every(st=>!st.req||!isEmpty(S.a[st.k]));
+function query(){return P[S.pid].build(S.a).map(x=>x[0]).join(' ').trim();}
+
+/* ---------- Height for embed ---------- */
+function postHeight(){try{parent.postMessage({type:'search-master-height',height:document.documentElement.scrollHeight},'*');}catch(e){}}
+function postTop(){try{parent.postMessage({type:'search-master-top'},'*');}catch(e){}}
+new ResizeObserver(postHeight).observe(document.body);
+window.addEventListener('load',postHeight);
+
+/* ---------- Home ---------- */
+function renderHome(){
+  S={view:'home',pid:null,a:{},cur:0,phase:null,fin:false};
+  app.innerHTML=`
+    <div class="label">Learn...Wow! Search Master</div>
+    <h1>Find the Right Results the First Time</h1>
+    <p class="sub">Pick where you’re searching. Answer a few quick questions. Get a ready-to-paste search that works.</p>
+    <div class="banner">
+      <div class="pane before"><span class="tag">Before</span>${mrPaul('sad')}<div class="cap">“That’s not what I wanted.”</div></div>
+      <div class="pane after"><span class="tag">After</span>${mrPaul('happy')}<div class="cap">“Found it. First try.”</div></div>
+    </div>
+    <div class="ask">Where do you want to search?</div>
+    <div class="grid">${ORDER.map(id=>`<button class="pbtn" data-p="${id}"><span class="ic">${P[id].ic}</span><span class="nm">${P[id].name}</span><span class="ps">${P[id].ps}</span></button>`).join('')}</div>
+    <div class="try">Try:
+      <a data-ex="google">A standing desk under $300</a> ·
+      <a data-ex="linkedin">A remote marketing job</a> ·
+      <a data-ex="reddit">Are air fryers worth it?</a>
+    </div>`;
+  app.querySelectorAll('.pbtn').forEach(b=>b.onclick=()=>openModule(b.dataset.p));
+  app.querySelectorAll('[data-ex]').forEach(l=>l.onclick=()=>openModule(l.dataset.ex,true));
+  postHeight();
+}
+
+/* ---------- Module ---------- */
+function openModule(pid,example){
+  S={view:'module',pid,a:{},cur:0,phase:null,fin:false};
+  if(example){S.a=JSON.parse(JSON.stringify(P[pid].examples[0].a));S.cur=visible().length;}
+  renderModule();postTop();
+}
+function renderModule(){
+  const p=P[S.pid], vs=visible();
+  let html=`
+    <div class="topbar">
+      <div class="mtitle"><small>Search Master</small>${p.ic} ${p.name}: ${p.ps}</div>
+      <div class="ctrls"><button class="cbtn" id="restart">Start Over</button><button class="cbtn" id="close">Close</button></div>
+    </div>
+    <div class="tip">${mrPaul('happy')}<div>${p.tip}</div></div>`;
+  if(S.cur===0&&!S.a[vs[0].k])html+=`<button class="exbtn" id="example">Show me an example: ${esc(p.examples[0].label)}</button>`;
+  vs.forEach((st,i)=>{ if(i>S.cur)return; html+=stepHTML(st,i,i===S.cur&&!done()); });
+  html+=`<div class="live" id="live" ${S.cur===0&&!query()?'style="display:none"':''}><span>Your search so far</span><code id="liveq">${esc(query())}</code></div>`;
+  html+=`<div id="result"></div>`;
+  app.innerHTML=html;
+  wireModule();
+  if(done())renderResult();
+  postHeight();
+}
+function stepHTML(st,i,active){
+  const v=S.a[st.k];
+  let field='';
+  if(st.type==='text')field=`<input type="text" data-k="${st.k}" value="${esc(v||'')}" autocomplete="off" aria-label="${esc(st.label)}">`;
+  else field=`<div class="chips">${st.chips.map(c=>{const on=st.type==='multi'?(v||[]).includes(c.v):(v??(st.req?undefined:''))===c.v;return `<button class="chip ${on?'on':''}" data-k="${st.k}" data-v="${esc(c.v)}" data-t="${st.type}">${esc(c.l)}</button>`;}).join('')}</div>`;
+  return `<div class="step" data-i="${i}">
+    <div class="sh"><span class="n">${i+1}</span>${esc(st.label)}</div>
+    ${st.ex?`<div class="ex">Example: <b>${esc(st.ex)}</b></div>`:'<div class="ex"></div>'}
+    <div class="field">${field}</div>
+    <div class="warn" id="warn${i}">Please answer this one to keep going.</div>
+    ${active?`<div class="sa"><button class="go" data-next="${i}">Next →</button>${st.req?'':`<button class="ghost" data-next="${i}">Skip</button>`}<button class="ghost donebtn" data-done="${i}" ${reqDone()&&i<visible().length-1?'':'style="display:none"'}>Done, show my search</button></div>`:''}
+  </div>`;
+}
+function wireModule(){
+  document.getElementById('restart').onclick=()=>{openModule(S.pid);};
+  document.getElementById('close').onclick=()=>{renderHome();postTop();};
+  const ex=document.getElementById('example'); if(ex)ex.onclick=()=>openModule(S.pid,true);
+  app.querySelectorAll('input[type=text]').forEach(inp=>{
+    inp.oninput=()=>{S.a[inp.dataset.k]=inp.value;refresh();};
+    inp.onkeydown=e=>{if(e.key==='Enter'){const b=inp.closest('.step').querySelector('.go');if(b)b.click();else inp.blur();}};
+  });
+  app.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    const k=c.dataset.k,v=c.dataset.v;
+    if(c.dataset.t==='multi'){const arr=S.a[k]||[];S.a[k]=arr.includes(v)?arr.filter(x=>x!==v):[...arr,v];}
+    else S.a[k]=v;
+    renderModule();
+  });
+  app.querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>{
+    if(!reqDone())return;
+    S.fin=true;renderModule();
+    const r=document.getElementById('result');if(r)r.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+  app.querySelectorAll('[data-next]').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.next, st=visible()[i], v=S.a[st.k];
+    const empty=v===undefined||v===null||(Array.isArray(v)?false:String(v).trim()==='');
+    if(st.req&&empty&&b.classList.contains('go')){document.getElementById('warn'+i).style.display='block';postHeight();return;}
+    S.cur=i+1;renderModule();
+    const steps=app.querySelectorAll('.step');const last=steps[steps.length-1];
+    const nextInput=last&&+last.dataset.i===S.cur?last.querySelector('input'):null;
+    if(nextInput)nextInput.focus({preventScroll:true});
+  });
+}
+function refresh(){
+  const q=query(),live=document.getElementById('live');
+  document.getElementById('liveq').textContent=q;
+  live.style.display=q?'block':'none';
+  const db=app.querySelector('.donebtn');
+  if(db)db.style.display=reqDone()&&S.cur<visible().length-1?'':'none';
+  if(done())renderResult();
+}
+
+/* ---------- Result ---------- */
+function renderResult(){
+  const p=P[S.pid],parts=p.build(S.a),q=query(),lazy=clean(p.lazy(S.a));
+  const box=document.getElementById('result');
+  if(!q){box.innerHTML='';return;}
+  const extra=p.extra?p.extra(S.a):null;
+  const anim=box.dataset.shown?' noanim':''; box.dataset.shown='1';
+  box.innerHTML=`<div class="result${anim}">
+    <div class="rh">Here’s your search</div>
+    <div class="qbox q">${esc(q)}</div>
+    <div class="row"><button class="go" id="copy">Copy</button><button class="ghost" id="run">Run This Search ↗</button></div>
+    <ul class="parts">${parts.map(x=>`<li><code>${esc(x[0])}</code><span>${esc(x[1])}</span></li>`).join('')}</ul>
+    <div class="ba">
+      <div class="bacol b"><h4>Before: what most people type</h4><code>${esc(lazy)}</code><button class="mini" id="runLazy">Try it ↗</button></div>
+      <div class="bacol a"><h4>After: the Search Master way</h4><code>${esc(q)}</code><button class="mini" id="runSmart">Try it ↗</button></div>
+    </div>
+    ${extra?`<div class="extra"><b>${esc(extra.t)}</b><code>${esc(extra.q)}</code><button class="mini" style="color:var(--gold)" id="copyExtra">Copy</button> <button class="mini" style="color:var(--gold)" id="runExtra">Run on Google ↗</button></div>`:''}
+    ${S.phase==='how'?'':`<div class="changes" id="changes">
+      ${S.phase==='changes'
+        ?`<p>Change any answer above. Your search updates as you type.</p><div class="row"><button class="go" id="noChg">I’m done, no more changes</button>${S.fin&&S.cur<visible().length?'<button class="ghost" id="more">Add more filters</button>':''}</div>`
+        :`<p>Any changes?</p><div class="row"><button class="go" id="yes">Yes</button><button class="ghost" id="no">No, I’m good</button></div>`}
+    </div>`}
+    ${S.phase==='how'?`<div class="how"><h4>How to use your search on ${esc(p.name)}</h4><ol>${p.how(S.a).map(l=>`<li>${l}</li>`).join('')}</ol>
+      <div class="row"><button class="go" id="copy2">Copy</button><button class="ghost" id="run2">Run This Search ↗</button><button class="ghost" id="other">Search another platform</button></div>
+      <p class="note">On a computer, Run This Search opens a small window on top of this page. Close it to come right back here.</p>
+      <p class="note">Once you know the pieces, you can type searches like this yourself, anywhere. Ads may still show at the top. The goal is the right results, first time.</p></div>`:''}
+  </div>`;
+  const url=p.url(q,S.a);
+  const on=(id,fn)=>{const e=document.getElementById(id);if(e)e.onclick=fn;};
+  on('copy',()=>copy(q));on('copy2',()=>copy(q));
+  on('run',()=>openUrl(url));on('run2',()=>openUrl(url));on('runSmart',()=>openUrl(url));
+  on('runLazy',()=>openUrl(p.url(lazy,S.a)));
+  if(extra){on('copyExtra',()=>copy(extra.q));on('runExtra',()=>openUrl(google(extra.q)));}
+  on('yes',()=>{S.phase='changes';renderResult();const f=app.querySelector('.step');if(f)f.scrollIntoView({behavior:'smooth',block:'center'});});
+  on('noChg',()=>{S.phase='how';renderResult();});
+  on('more',()=>{S.fin=false;S.phase=null;S.cur=Math.min(S.cur+1,visible().length);renderModule();const st=app.querySelectorAll('.step');const l=st[st.length-1];if(l)l.scrollIntoView({behavior:'smooth',block:'center'});});
+  on('no',()=>{S.phase='how';renderResult();});
+  on('other',()=>{renderHome();postTop();});
+  postHeight();
+}
+function openUrl(u){
+  const desktop=window.matchMedia('(min-width:768px) and (pointer:fine)').matches;
+  if(desktop){
+    const w=Math.min(1100,screen.availWidth-80), h=Math.min(800,screen.availHeight-80);
+    const left=Math.round((window.screenX||0)+((window.outerWidth||screen.availWidth)-w)/2);
+    const top=Math.round((window.screenY||0)+((window.outerHeight||screen.availHeight)-h)/2);
+    const pop=window.open(u,'searchMasterResults',`popup=yes,width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+    if(pop){try{pop.opener=null;}catch(e){} try{pop.focus();}catch(e){} return;}
+  }
+  window.open(u,'_blank','noopener');
+}
+function copy(t){
+  const ok=()=>{const el=document.getElementById('toast');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1400);};
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(ok).catch(()=>fallback(t,ok));}else fallback(t,ok);
+}
+function fallback(t,ok){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok();}catch(e){}document.body.removeChild(ta);}
+
+renderHome();
+</script>
+</body>
+</html>
